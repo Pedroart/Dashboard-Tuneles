@@ -1,0 +1,144 @@
+[
+  {
+    "sensor": "pinchar_1",
+    "fault_type": "disconnect",
+    "start_min": 226,
+    "end_min": 235,
+    "meta": {
+      "value": 600
+    }
+  },
+  {
+    "sensor": "pinchar_1",
+    "fault_type": "out_of_range",
+    "start_min": 95,
+    "end_min": 109,
+    "meta": {
+      "points": [
+        [
+          104,
+          -50.0
+        ],
+        [
+          108,
+          -20.0
+        ],
+        [
+          106,
+          999.0
+        ],
+        [
+          95,
+          -50.0
+        ]
+      ]
+    }
+  },
+  {
+    "sensor": "pinchar_3",
+    "fault_type": "disconnect",
+    "start_min": 405,
+    "end_min": 409,
+    "meta": {
+      "value": 600
+    }
+  },
+  {
+    "sensor": "pinchar_6",
+    "fault_type": "disconnect",
+    "start_min": 122,
+    "end_min": 134,
+    "meta": {
+      "value": 600
+    }
+  },
+  {
+    "sensor": "pinchar_6",
+    "fault_type": "freeze",
+    "start_min": 8,
+    "end_min": 19,
+    "meta": {
+      "value": 7.048484906860965
+    }
+  },
+  {
+    "sensor": "pinchar_7",
+    "fault_type": "out_of_range",
+    "start_min": 229,
+    "end_min": 237,
+    "meta": {
+      "points": [
+        [
+          229,
+          85.0
+        ],
+        [
+          236,
+          120.0
+        ]
+      ]
+    }
+  },
+  {
+    "sensor": "pinchar_7",
+    "fault_type": "out_of_range",
+    "start_min": 207,
+    "end_min": 214,
+    "meta": {
+      "points": [
+        [
+          207,
+          999.0
+        ],
+        [
+          209,
+          85.0
+        ],
+        [
+          213,
+          120.0
+        ],
+        [
+          207,
+          999.0
+        ]
+      ]
+    }
+  },
+  {
+    "sensor": "pinchar_7",
+    "fault_type": "freeze",
+    "start_min": 110,
+    "end_min": 131,
+    "meta": {
+      "value": 2.870899400471984
+    }
+  },
+  {
+    "sensor": "pinchar_7",
+    "fault_type": "disconnect",
+    "start_min": 53,
+    "end_min": 58,
+    "meta": {
+      "value": 600
+    }
+  },
+  {
+    "sensor": "pinchar_8",
+    "fault_type": "freeze",
+    "start_min": 285,
+    "end_min": 296,
+    "meta": {
+      "value": 1.00787375251883
+    }
+  },
+  {
+    "sensor": "pinchar_8",
+    "fault_type": "freeze",
+    "start_min": 264,
+    "end_min": 281,
+    "meta": {
+      "value": 1.450753339963848
+    }
+  }
+]

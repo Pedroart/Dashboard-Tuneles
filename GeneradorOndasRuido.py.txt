@@ -1,0 +1,235 @@
+import math
+import random
+import numpy as np
+import matplotlib.pyplot as plt
+
+# -------------------------
+# Utilidades
+# -------------------------
+def clamp(v, lo, hi):
+    return lo if v < lo else hi if v > hi else v
+
+def base_curve(t_min, T0=24.0, Tf=0.0, tf_min=480, alpha=0.08):
+    u = clamp(t_min / tf_min, 0.0, 1.0)
+    return Tf + (T0 - Tf) * (1.0 - (u ** alpha))
+
+def simulate_series(
+    t,
+    T0=24.0,
+    Tf=0.0,
+    tf_min=480,
+    alpha=0.08,
+    osc_threshold=2.0,
+    A=0.25,
+    period_min=10.0,
+    noise_sigma=0.05,
+    offset=0.0,
+    phase=0.0,
+    seed=42,
+    lo_margin=1.0,
+    hi_margin=1.0
+):
+    w = 2.0 * math.pi / period_min
+    out = []
+
+    for tt in t:
+        T_base = base_curve(tt, T0=T0, Tf=Tf, tf_min=tf_min, alpha=alpha) + offset
+
+        osc = 0.0
+        if T_base <= osc_threshold:
+            osc = A * math.sin(w * tt + phase)
+
+        rng = random.Random(seed + int(tt * 100) + int(phase * 1000))
+        noise = rng.gauss(0.0, noise_sigma)
+
+        val = T_base + osc + noise
+        val = clamp(val, Tf - lo_margin, T0 + hi_margin)
+        out.append(val)
+
+    return np.array(out)
+
+# -------------------------
+# Inyección de fallas
+# -------------------------
+def inject_faults_pinchar(
+    series: np.ndarray,
+    ambient: np.ndarray,
+    seed: int,
+    minutes: int,
+    fault_rate_per_hour: float = 0.25,   # ~0.25 eventos/hora => 2 eventos en 8h aprox (POCO frecuente)
+    p_disconnect: float = 0.35,
+    p_freeze: float = 0.35,
+    p_out_of_range: float = 0.20,
+    p_below_ambient: float = 0.10,
+):
+    """
+    Devuelve (serie_con_fallas, lista_de_eventos).
+    Eventos aleatorios de baja frecuencia:
+    - disconnect: valores = 600 durante un tramo
+    - freeze: lectura pegada durante un tramo
+    - out_of_range: valores absurdos (negativos o muy altos) por pocos puntos
+    - below_ambient: fuerza la lectura debajo del ambiente por un tramo
+    """
+    rng = random.Random(seed)
+    y = series.copy()
+
+    # Cuántos eventos en total (Poisson-like)
+    hours = minutes / 60.0
+    expected = fault_rate_per_hour * hours
+    # Aproximación simple: Poisson con Knuth
+    L = math.exp(-expected)
+    k = 0
+    p = 1.0
+    while p > L:
+        k += 1
+        p *= rng.random()
+    n_events = max(0, k - 1)
+
+    events = []
+
+    def pick_type():
+        r = rng.random()
+        if r < p_disconnect:
+            return "disconnect"
+        r -= p_disconnect
+        if r < p_freeze:
+            return "freeze"
+        r -= p_freeze
+        if r < p_out_of_range:
+            return "out_of_range"
+        return "below_ambient"
+
+    for _ in range(n_events):
+        etype = pick_type()
+
+        # inicio aleatorio evitando bordes
+        start = rng.randint(5, minutes - 5)
+
+        if etype == "disconnect":
+            dur = rng.randint(2, 12)  # 2..12 min
+            end = min(minutes, start + dur)
+            y[start:end] = 600.0
+            events.append((etype, start, end))
+
+        elif etype == "freeze":
+            dur = rng.randint(5, 25)  # 5..25 min
+            end = min(minutes, start + dur)
+            frozen_val = y[start - 1] if start > 0 else y[start]
+            y[start:end] = frozen_val
+            events.append((etype, start, end))
+
+        elif etype == "out_of_range":
+            # pocos puntos salteados
+            count = rng.randint(1, 4)
+            idxs = [rng.randint(start, min(minutes - 1, start + 15)) for _ in range(count)]
+            for idx in idxs:
+                y[idx] = rng.choice([ -50.0, -20.0, 85.0, 120.0, 999.0 ])
+            events.append((etype, min(idxs), max(idxs) + 1))
+
+        elif etype == "below_ambient":
+            dur = rng.randint(3, 10)
+            end = min(minutes, start + dur)
+            # fuerza a estar por debajo del ambiente (por ej. ambiente - 0.3 a -1.0)
+            for i in range(start, end):
+                y[i] = ambient[i] - rng.uniform(0.3, 1.0)
+            events.append((etype, start, end))
+
+    return y, events
+
+# -------------------------
+# Main
+# -------------------------
+def main():
+    # Config
+    T0 = 24.0
+    Tf = 0.0
+    tf_min = 480
+    alpha = 0.08
+
+    t = np.arange(0, tf_min + 1, 1)
+
+    # Aire: un poco más frío, para que el producto quede por encima
+    ambiente = simulate_series(
+        t, T0=T0, Tf=Tf, tf_min=tf_min, alpha=alpha,
+        osc_threshold=3.0, A=0.14, period_min=9.0, noise_sigma=0.03,
+        offset=-0.35, phase=0.4, seed=100
+    )
+    retorno = simulate_series(
+        t, T0=T0, Tf=Tf, tf_min=tf_min, alpha=alpha,
+        osc_threshold=3.0, A=0.16, period_min=8.0, noise_sigma=0.03,
+        offset=-0.20, phase=1.1, seed=200
+    )
+
+    # 8 pinchar “normales” (sin fallas)
+    n = 8
+    target_ends = np.linspace(0.1, 0.5, n)
+    margin_over_amb = 0.08
+
+    pinchars_clean = []
+    for i in range(n):
+        A_i = 0.18 + 0.05 * (i / (n - 1))
+        period_i = 7.0 + 2.5 * (i / (n - 1))
+        sigma_i = 0.04 + 0.03 * (i / (n - 1))
+        phase_i = 0.7 * i + 0.2
+        offset_i = 0.15 + 0.10 * math.sin(i)
+
+        raw = simulate_series(
+            t, T0=T0, Tf=Tf, tf_min=tf_min, alpha=alpha,
+            osc_threshold=2.2, A=A_i, period_min=period_i, noise_sigma=sigma_i,
+            offset=offset_i, phase=phase_i, seed=1000 + i * 999
+        )
+
+        shift = target_ends[i] - raw[-1]
+        p = raw + shift
+
+        # normal: producto siempre sobre ambiente
+        p = np.maximum(p, ambiente + margin_over_amb)
+
+        # re-ajuste final (manteniendo condición)
+        delta_end = target_ends[i] - p[-1]
+        p2 = np.maximum(p + delta_end, ambiente + margin_over_amb)
+
+        pinchars_clean.append(p2)
+
+    # Inyectar fallas por sensor (poco frecuentes)
+    pinchars_faulty = []
+    all_events = []
+    for i in range(n):
+        faulty, events = inject_faults_pinchar(
+            pinchars_clean[i],
+            ambient=ambiente,
+            seed=9000 + i * 77,
+            minutes=tf_min,
+            fault_rate_per_hour=0.25  # baja frecuencia
+        )
+        pinchars_faulty.append(faulty)
+        all_events.append(events)
+
+    # Graficar
+    plt.figure(figsize=(11, 5))
+    plt.plot(t, ambiente, label="Ambiente (aire)", linewidth=2)
+    plt.plot(t, retorno, label="Retorno (aire)", linewidth=2)
+
+    for i, p in enumerate(pinchars_faulty, start=1):
+        plt.plot(t, p, linewidth=1.0, alpha=0.9, label=f"Pinchar {i}")
+
+    plt.xlabel("Tiempo (minutos)")
+    plt.ylabel("Temperatura (°C)")
+    plt.title("Simulación con fallas: Ambiente, Retorno y 8 Pinchar (α=0.08)")
+    plt.grid(True)
+    plt.legend(ncol=3, fontsize=8)
+    plt.tight_layout()
+    plt.show()
+
+    # Resumen de fallas
+    print("\nResumen de fallas por pinchar:")
+    for i, evs in enumerate(all_events, start=1):
+        if not evs:
+            print(f"Pinchar {i}: sin fallas")
+            continue
+        print(f"Pinchar {i}:")
+        for (etype, s, e) in evs:
+            print(f"  - {etype:12s}  min {s:3d} -> {e:3d}")
+
+if __name__ == "__main__":
+    main()

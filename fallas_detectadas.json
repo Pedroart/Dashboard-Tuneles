@@ -1,0 +1,156 @@
+[
+  {
+    "sensor": "pinchar_7",
+    "fault_type": "disconnect",
+    "start_min": 53,
+    "end_min": 58,
+    "meta.ensure": "value==600.0"
+  },
+  {
+    "sensor": "pinchar_7",
+    "fault_type": "out_of_range",
+    "start_min": 53,
+    "end_min": 58,
+    "meta.ensure": "<-10.0 or >60.0"
+  },
+  {
+    "sensor": "pinchar_1",
+    "fault_type": "out_of_range",
+    "start_min": 95,
+    "end_min": 96,
+    "meta.ensure": "<-10.0 or >60.0"
+  },
+  {
+    "sensor": "pinchar_1",
+    "fault_type": "below_ambient",
+    "start_min": 95,
+    "end_min": 96,
+    "meta.ensure": "y < ambient - 0.0"
+  },
+  {
+    "sensor": "pinchar_1",
+    "fault_type": "out_of_range",
+    "start_min": 104,
+    "end_min": 105,
+    "meta.ensure": "<-10.0 or >60.0"
+  },
+  {
+    "sensor": "pinchar_1",
+    "fault_type": "below_ambient",
+    "start_min": 104,
+    "end_min": 105,
+    "meta.ensure": "y < ambient - 0.0"
+  },
+  {
+    "sensor": "pinchar_7",
+    "fault_type": "freeze",
+    "start_min": 104,
+    "end_min": 131,
+    "meta.ensure": "rolling_std(20) <= 0.02"
+  },
+  {
+    "sensor": "pinchar_1",
+    "fault_type": "out_of_range",
+    "start_min": 106,
+    "end_min": 107,
+    "meta.ensure": "<-10.0 or >60.0"
+  },
+  {
+    "sensor": "pinchar_1",
+    "fault_type": "out_of_range",
+    "start_min": 108,
+    "end_min": 109,
+    "meta.ensure": "<-10.0 or >60.0"
+  },
+  {
+    "sensor": "pinchar_1",
+    "fault_type": "below_ambient",
+    "start_min": 108,
+    "end_min": 109,
+    "meta.ensure": "y < ambient - 0.0"
+  },
+  {
+    "sensor": "pinchar_6",
+    "fault_type": "disconnect",
+    "start_min": 122,
+    "end_min": 134,
+    "meta.ensure": "value==600.0"
+  },
+  {
+    "sensor": "pinchar_6",
+    "fault_type": "out_of_range",
+    "start_min": 122,
+    "end_min": 134,
+    "meta.ensure": "<-10.0 or >60.0"
+  },
+  {
+    "sensor": "pinchar_7",
+    "fault_type": "out_of_range",
+    "start_min": 207,
+    "end_min": 208,
+    "meta.ensure": "<-10.0 or >60.0"
+  },
+  {
+    "sensor": "pinchar_7",
+    "fault_type": "out_of_range",
+    "start_min": 209,
+    "end_min": 210,
+    "meta.ensure": "<-10.0 or >60.0"
+  },
+  {
+    "sensor": "pinchar_7",
+    "fault_type": "out_of_range",
+    "start_min": 213,
+    "end_min": 214,
+    "meta.ensure": "<-10.0 or >60.0"
+  },
+  {
+    "sensor": "pinchar_1",
+    "fault_type": "disconnect",
+    "start_min": 226,
+    "end_min": 235,
+    "meta.ensure": "value==600.0"
+  },
+  {
+    "sensor": "pinchar_1",
+    "fault_type": "out_of_range",
+    "start_min": 226,
+    "end_min": 235,
+    "meta.ensure": "<-10.0 or >60.0"
+  },
+  {
+    "sensor": "pinchar_7",
+    "fault_type": "out_of_range",
+    "start_min": 229,
+    "end_min": 230,
+    "meta.ensure": "<-10.0 or >60.0"
+  },
+  {
+    "sensor": "pinchar_7",
+    "fault_type": "out_of_range",
+    "start_min": 236,
+    "end_min": 237,
+    "meta.ensure": "<-10.0 or >60.0"
+  },
+  {
+    "sensor": "pinchar_8",
+    "fault_type": "freeze",
+    "start_min": 263,
+    "end_min": 283,
+    "meta.ensure": "rolling_std(20) <= 0.02"
+  },
+  {
+    "sensor": "pinchar_3",
+    "fault_type": "disconnect",
+    "start_min": 405,
+    "end_min": 409,
+    "meta.ensure": "value==600.0"
+  },
+  {
+    "sensor": "pinchar_3",
+    "fault_type": "out_of_range",
+    "start_min": 405,
+    "end_min": 409,
+    "meta.ensure": "<-10.0 or >60.0"
+  }
+]

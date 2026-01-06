@@ -1,0 +1,159 @@
+import math
+import random
+import numpy as np
+import matplotlib.pyplot as plt
+
+def clamp(v, lo, hi):
+    return lo if v < lo else hi if v > hi else v
+
+def base_curve(t_min, T0=24.0, Tf=0.0, tf_min=480, alpha=0.08):
+    """
+    Curva base: Tf + (T0 - Tf) * (1 - (t/tf)^alpha)
+    alpha pequeño => caída muy brusca al inicio.
+    """
+    u = clamp(t_min / tf_min, 0.0, 1.0)
+    return Tf + (T0 - Tf) * (1.0 - (u ** alpha))
+
+def simulate_series(
+    t,
+    T0=24.0,
+    Tf=0.0,
+    tf_min=480,
+    alpha=0.08,
+    osc_threshold=2.0,
+    A=0.25,
+    period_min=10.0,
+    noise_sigma=0.05,
+    offset=0.0,
+    phase=0.0,
+    seed=42,
+    lo_margin=1.0,
+    hi_margin=1.0
+):
+    """
+    Genera una serie con base_curve + offset + oscilación condicional + ruido.
+    - Ruido determinístico por (seed, t, phase) => no cambia al re-plotear.
+    """
+    w = 2.0 * math.pi / period_min
+    out = []
+
+    for tt in t:
+        T_base = base_curve(tt, T0=T0, Tf=Tf, tf_min=tf_min, alpha=alpha) + offset
+
+        osc = 0.0
+        if T_base <= osc_threshold:
+            osc = A * math.sin(w * tt + phase)
+
+        rng = random.Random(seed + int(tt * 100) + int(phase * 1000))
+        noise = rng.gauss(0.0, noise_sigma)
+
+        val = T_base + osc + noise
+        val = clamp(val, Tf - lo_margin, T0 + hi_margin)
+        out.append(val)
+
+    return np.array(out)
+
+def main():
+    # =========================
+    # CONFIG PRINCIPAL
+    # =========================
+    T0 = 24.0
+    Tf = 0.0
+    tf_min = 480
+    alpha = 0.08
+
+    # Tiempo: 1 punto por minuto
+    t = np.arange(0, tf_min + 1, 1)
+
+    # =========================
+    # AMBIENTE y RETORNO (AIRE)
+    # Deben ser más fríos que los pinchar
+    # =========================
+    # Hacemos que el aire termine un poco bajo 0 para que el producto pueda quedar en 0.1..0.5
+    # (y cumpla siempre pinchar > ambiente).
+    ambiente = simulate_series(
+        t, T0=T0, Tf=Tf, tf_min=tf_min, alpha=alpha,
+        osc_threshold=3.0, A=0.15, period_min=9.0, noise_sigma=0.04,
+        offset=-0.35, phase=0.4, seed=100,
+        lo_margin=1.0, hi_margin=1.0
+    )
+
+    retorno = simulate_series(
+        t, T0=T0, Tf=Tf, tf_min=tf_min, alpha=alpha,
+        osc_threshold=3.0, A=0.18, period_min=8.0, noise_sigma=0.04,
+        offset=-0.20, phase=1.1, seed=200,
+        lo_margin=1.0, hi_margin=1.0
+    )
+
+    # =========================
+    # 8 PINCHAR (PRODUCTO)
+    # - objetivos finales: 0.1..0.5 °C
+    # - SIEMPRE por encima del ambiente
+    # - cada uno con ruido/oscilación distinta
+    # =========================
+    n = 8
+    target_ends = np.linspace(0.1, 0.5, n)
+    pinchars = []
+
+    # margen mínimo sobre ambiente (para que se note siempre "producto > aire")
+    margin_over_amb = 0.08  # °C
+
+    for i in range(n):
+        # variabilidad por sensor
+        # (amplitud, periodo, ruido, fase y offset levemente diferentes)
+        A_i = 0.18 + 0.05 * (i / (n - 1))          # 0.18..0.23
+        period_i = 7.0 + 2.5 * (i / (n - 1))       # 7..9.5 min
+        sigma_i = 0.04 + 0.03 * (i / (n - 1))      # 0.04..0.07
+        phase_i = 0.7 * i + 0.2
+        offset_i = 0.15 + 0.10 * math.sin(i)       # alrededor de +0.15..+0.25
+
+        raw = simulate_series(
+            t, T0=T0, Tf=Tf, tf_min=tf_min, alpha=alpha,
+            osc_threshold=2.2, A=A_i, period_min=period_i, noise_sigma=sigma_i,
+            offset=offset_i, phase=phase_i, seed=1000 + i * 999,
+            lo_margin=1.0, hi_margin=1.0
+        )
+
+        # Ajuste para que el último punto quede EXACTO en el target (0.1..0.5)
+        shift = target_ends[i] - raw[-1]
+        p = raw + shift
+
+        # ENFORCE: pinchar siempre por encima de ambiente + margen
+        p = np.maximum(p, ambiente + margin_over_amb)
+
+        # Re-ajuste final si el enforce movió el último punto hacia arriba
+        # (vuelve a fijar el final sin romper la condición)
+        delta_end = target_ends[i] - p[-1]
+        p2 = p + delta_end
+        p2 = np.maximum(p2, ambiente + margin_over_amb)
+
+        pinchars.append(p2)
+
+    # =========================
+    # GRAFICAR TODO JUNTO
+    # =========================
+    plt.figure(figsize=(10, 5))
+    plt.plot(t, ambiente, label="Ambiente (aire)")
+    plt.plot(t, retorno, label="Retorno (aire)")
+
+    for i, p in enumerate(pinchars, start=1):
+        plt.plot(t, p, linewidth=1.0, alpha=0.9, label=f"Pinchar {i}")
+
+    plt.xlabel("Tiempo (minutos)")
+    plt.ylabel("Temperatura (°C)")
+    plt.title("Simulación: Ambiente, Retorno y 8 Pinchar (α=0.08) | Pinchar > Ambiente")
+    plt.grid(True)
+    plt.legend(ncol=3, fontsize=8)
+    plt.tight_layout()
+    plt.show()
+
+    # =========================
+    # CHEQUEO RÁPIDO
+    # =========================
+    print("Finales (°C):")
+    print(f"Ambiente: {ambiente[-1]:.3f} | Retorno: {retorno[-1]:.3f}")
+    for i, p in enumerate(pinchars, start=1):
+        print(f"Pinchar {i}: {p[-1]:.3f}  (min(pinchar-amb)={np.min(p - ambiente):.3f})")
+
+if __name__ == "__main__":
+    main()
