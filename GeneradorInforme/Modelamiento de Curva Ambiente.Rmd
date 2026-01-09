@@ -1,0 +1,1433 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# Curva de Temperatura V1
+
+## Modelo Matematico 
+```{r}
+subamortiguada_T <- function(t_min,
+                             T0 = 24,
+                             Tfinal = -0.1,
+                             PO = 0.10,
+                             Ts = 90) {
+
+  # 1) Calcular zeta desde overshoot
+  f <- function(z) exp(-z*pi/sqrt(1 - z^2)) - PO
+  zeta <- uniroot(f, c(0.01, 0.99))$root
+
+  # 2) Frecuencia natural y amortiguada
+  wn <- 4/(zeta*Ts)                 # rad/min
+  wd <- wn*sqrt(1 - zeta^2)
+
+  # 3) Respuesta subamortiguada
+  alpha <- zeta/sqrt(1 - zeta^2)
+  step01 <- 1 - exp(-zeta*wn*t_min) *
+    (cos(wd*t_min) + alpha*sin(wd*t_min))
+
+  # 4) Escalado a temperatura
+  T <- T0 + (Tfinal - T0)*step01
+
+  return(list(T = T, zeta = zeta, wn = wn, wd = wd))
+}
+
+```
+
+```{r}
+# --- Simulación ---
+t <- seq(0, 480, length.out = 2000)
+res <- subamortiguada_T(t)
+T <- res$T
+
+Tfinal <- -0.1
+tol <- 1e-6  # tolerancia para detectar el "llegó" (ajusta si quieres)
+
+# tp_objetivo = primer tiempo donde alcanza el objetivo (primer cruce)
+i_tp <- which(T <= Tfinal + tol)[1]  # para una caída desde 24 hacia -0.1
+if (is.na(i_tp)) stop("No se encontró cruce con el objetivo en el rango simulado.")
+tp_obj <- t[i_tp]
+
+# --- Preparar figura 2x1 ---
+op <- par(no.readonly = TRUE)
+par(mfrow = c(2, 1), mar = c(4, 4, 3, 1))
+
+# ==========
+# (1) Estado transitorio (0 -> tp_objetivo)
+# ==========
+t1 <- t[1:i_tp]
+T1 <- T[1:i_tp]
+
+plot(t1, T1, type = "l", lwd = 2, col = "blue",
+     xlab = "Tiempo [min]",
+     ylab = "Temperatura [°C]",
+     main = paste0("Estado transitorio (0 a tp_obj = ", round(tp_obj, 2), " min)"))
+
+abline(h = Tfinal, col = "red", lty = 2)
+abline(v = tp_obj, col = "black", lty = 2)
+grid()
+
+legend("topright",
+       legend = c("Respuesta", "Objetivo (Tfinal)", "tp objetivo"),
+       col = c("blue", "red", "black"),
+       lty = c(1, 2, 2),
+       lwd = c(2, 1, 1))
+
+# ==========
+# (2) Estado estable (tp_objetivo -> 480 min) con ZOOM
+# ==========
+t2 <- t[i_tp:length(t)]
+T2 <- T[i_tp:length(t)]
+
+# banda 2% alrededor del valor final (ojo: si Tfinal es negativo,
+# multiplicar por 1.02/0.98 invierte el orden; usamos delta absoluto)
+band <- 0.02 * abs(Tfinal)   # 2% del valor final en magnitud
+upper <- Tfinal + band
+lower <- Tfinal - band
+
+# límites y-zoom: usa el rango real pero forzando un zoom mínimo
+yr <- range(T2, upper, lower)
+zoom_pad <- max( (yr[2] - yr[1]) * 0.15, band * 3 )
+ylim2 <- c(yr[1] - zoom_pad, yr[2] + zoom_pad)
+
+plot(t2, T2, type = "l", lwd = 2, col = "darkgreen",
+     xlab = "Tiempo [min]",
+     ylab = "Temperatura [°C]",
+     main = "Estado estable (zoom alrededor del valor final)",
+     ylim = ylim2)
+
+abline(h = Tfinal, col = "red", lty = 2)
+abline(h = c(lower, upper), col = "gray", lty = 3)
+abline(v = tp_obj, col = "black", lty = 2)
+grid()
+
+legend("topright",
+       legend = c("Respuesta (estable)", "Objetivo (Tfinal)", "Banda ±2%", "tp objetivo"),
+       col = c("darkgreen", "red", "gray", "black"),
+       lty = c(1, 2, 3, 2),
+       lwd = c(2, 1, 1, 1))
+
+par(op)
+
+# Imprimir tp objetivo en consola
+cat("tp_objetivo =", tp_obj, "min\n")
+
+
+```
+# Modulamiento de Temperatura V2
+
+## Desarrollo de la curva
+
+```{r}
+curva_temp_v2 <- function(T0 = 24,
+                          setpoint = -0.1,
+                          duracion_proceso_min = 480,
+                          pct_transitorio = 20,     # % del tiempo total
+                          overshoot_pct = 10,       # % overshoot
+                          osc_estable_pct = 2,      # % amplitud ondulaciones en estable
+                          ruido_estable_pct = 0.6,  # % ruido (extra) en estable
+                          n = 2000,
+                          seed = 123) {
+
+  set.seed(seed)
+
+  # Tiempo
+  t <- seq(0, duracion_proceso_min, length.out = n)
+
+  # --- 1) Modelo 2° orden subamortiguado para el transitorio ---
+  PO <- overshoot_pct / 100
+  fz <- function(z) exp(-z*pi/sqrt(1 - z^2)) - PO
+  zeta <- uniroot(fz, c(0.01, 0.99))$root
+
+  t_trans_end <- (pct_transitorio / 100) * duracion_proceso_min
+  if (t_trans_end <= 0) t_trans_end <- duracion_proceso_min * 0.1
+
+  # Hacemos que el "settling" ocurra aprox al final del transitorio
+  Ts_eff <- t_trans_end
+  wn <- 4/(zeta * Ts_eff)
+  wd <- wn * sqrt(1 - zeta^2)
+  alpha <- zeta / sqrt(1 - zeta^2)
+
+  step01 <- 1 - exp(-zeta * wn * t) * (cos(wd * t) + alpha * sin(wd * t))
+  T_base <- T0 + (setpoint - T0) * step01
+
+  # --- 2) “Estado estable” con ondulaciones + ruido (más notorio) ---
+  # Escala de amplitud (si setpoint es muy pequeño, usa el salto)
+  escala <- max(abs(setpoint), abs(setpoint - T0), 1)
+
+  A_ond <- (osc_estable_pct / 100) * escala
+  A_ruido <- (ruido_estable_pct / 100) * escala
+
+  # Ondulaciones: mezcla de dos senos con fases aleatorias
+  phi1 <- runif(1, 0, 2*pi)
+  phi2 <- runif(1, 0, 2*pi)
+
+  # Frecuencias (en rad/min) escogidas para “ruido ondulante” visible
+  w1 <- 2*pi / 18   # ~ periodo 18 min
+  w2 <- 2*pi / 7    # ~ periodo 7 min
+
+  ond <- A_ond * (0.65*sin(w1*t + phi1) + 0.35*sin(w2*t + phi2))
+
+  # Ruido aleatorio (gaussiano) + un poco de suavizado opcional
+  ruido <- rnorm(length(t), mean = 0, sd = A_ruido)
+
+  # Aplica ondulaciones/ruido SOLO después del fin del transitorio
+  mask_estable <- t >= t_trans_end
+  T <- T_base
+  T[mask_estable] <- T_base[mask_estable] + ond[mask_estable] + ruido[mask_estable]
+
+  # tp_objetivo (primer cruce con setpoint)
+  tol <- 1e-6
+  i_tp <- which(T <= setpoint + tol)[1]
+  if (is.na(i_tp)) i_tp <- which.min(abs(T - setpoint))
+  tp_obj <- t[i_tp]
+
+  list(t = t,
+       T = T,
+       T_base = T_base,
+       zeta = zeta, wn = wn, wd = wd,
+       t_trans_end = t_trans_end,
+       tp_obj = tp_obj,
+       i_tp = i_tp,
+       params = list(T0=T0, setpoint=setpoint, duracion_proceso_min=duracion_proceso_min,
+                     pct_transitorio=pct_transitorio, overshoot_pct=overshoot_pct,
+                     osc_estable_pct=osc_estable_pct, ruido_estable_pct=ruido_estable_pct,
+                     n=n, seed=seed))
+}
+
+plot_transitorio_estable <- function(t, T, setpoint, t_corte,
+                                     titulo = "Curva",
+                                     banda_pct = 2) {
+
+  # Banda ±2% alrededor del setpoint (manejo correcto si es negativo)
+  band <- (banda_pct/100) * max(abs(setpoint), 1e-9)
+  upper <- setpoint + band
+  lower <- setpoint - band
+
+  # Índices
+  idx_trans <- t <= t_corte
+  idx_est <- t >= t_corte
+
+  op <- par(no.readonly = TRUE)
+  par(mfrow = c(2,1), mar = c(4,4,3,1))
+
+  # --- Transitorio ---
+  plot(t[idx_trans], T[idx_trans], type="l", lwd=2, col="blue",
+       xlab="Tiempo [min]", ylab="Temperatura [°C]",
+       main=paste0(titulo, " — Estado transitorio (0 a ", round(t_corte,2), " min)"))
+  abline(h=setpoint, col="red", lty=2)
+  abline(v=t_corte, col="black", lty=2)
+  grid()
+
+  # --- Estable (zoom) ---
+  t2 <- t[idx_est]
+  T2 <- T[idx_est]
+
+  yr <- range(T2, upper, lower)
+  zoom_pad <- max((yr[2]-yr[1])*0.2, band*6, 1e-6)
+  ylim2 <- c(yr[1]-zoom_pad, yr[2]+zoom_pad)
+
+  plot(t2, T2, type="l", lwd=2, col="darkgreen",
+       xlab="Tiempo [min]", ylab="Temperatura [°C]",
+       main=paste0(titulo, " — Estado estable (zoom)"),
+       ylim=ylim2)
+  abline(h=setpoint, col="red", lty=2)
+  abline(h=c(lower, upper), col="gray", lty=3)
+  abline(v=t_corte, col="black", lty=2)
+  grid()
+
+  par(op)
+}
+
+
+```
+
+```{r}
+v2 <- curva_temp_v2(T0 = 24,
+                    setpoint = -0.1,
+                    duracion_proceso_min = 8*60,
+                    pct_transitorio = 20,     # ej: 20% del tiempo total como transitorio
+                    overshoot_pct = 10,
+                    osc_estable_pct = 1,      # ondulaciones más notorias
+                    ruido_estable_pct = 0.1,  # más ruido en estable
+                    n = 8*60+1,
+                    seed = 6)
+
+plot(v2$t, v2$T,
+     type = "o", pch = 16, cex = 0.45, lwd = 1.5,
+     col = "darkgreen",
+     xlab = "Tiempo [min]",
+     ylab = "Temperatura [°C]",
+     main = "Curva de Temperatura")
+grid()
+
+plot_transitorio_estable(v2$t, v2$T, setpoint = -0.1, t_corte = v2$t_trans_end,
+                         titulo = "Curva de Temperatura")
+
+
+
+```
+## Detector de Estado
+
+```{r}
+detectar_regimen <- function(t, T,
+                             banda_pct = 2,          # ±2% por defecto
+                             tail_pct = 20,          # % final para estimar estado estable
+                             ventana_min = 10,       # minutos consecutivos dentro de banda
+                             dt_min = NULL) {        # si no lo das, se estima
+
+  stopifnot(length(t) == length(T), length(t) >= 5)
+
+  # Estimar dt (asumiendo muestreo casi uniforme)
+  if (is.null(dt_min)) {
+    dt_min <- median(diff(t))
+  }
+
+  # Cuántos puntos equivalen a ventana_min
+  k <- max(1, round(ventana_min / dt_min))
+
+  # 1) Estimar valor final con el último tail_pct%
+  n <- length(T)
+  tail_n <- max(5, floor((tail_pct / 100) * n))
+  T_final_est <- mean(T[(n - tail_n + 1):n], na.rm = TRUE)
+
+  # 2) Banda ±banda_pct alrededor del valor final
+  #    Si el valor final es muy cercano a 0, usamos escala por rango para evitar banda cero
+  escala <- max(abs(T_final_est), diff(range(T)), 1e-6)
+  band <- (banda_pct / 100) * escala
+  lower <- T_final_est - band
+  upper <- T_final_est + band
+
+  dentro <- (T >= lower) & (T <= upper)
+
+  # 3) Primer índice donde se mantiene dentro por k puntos seguidos
+  #    Usamos running sum de TRUEs
+  dentro_num <- as.integer(dentro)
+  runsum <- stats::filter(dentro_num, rep(1, k), sides = 1)
+
+  i_est <- which(runsum >= k)[1]
+  if (is.na(i_est)) {
+    # No se encontró estado estable según criterio
+    return(list(
+      estable_encontrado = FALSE,
+      t_estable_inicio = NA_real_,
+      i_estable_inicio = NA_integer_,
+      T_final_est = T_final_est,
+      banda = c(lower = lower, upper = upper),
+      k = k,
+      dt_min = dt_min,
+      transitorio = list(t = t, T = T),
+      estable = list(t = numeric(0), T = numeric(0))
+    ))
+  }
+
+  # Ajuste: i_est es el final de la primera ventana; el inicio real es:
+  i_ini <- max(1, i_est - k + 1)
+
+  list(
+    estable_encontrado = TRUE,
+    t_estable_inicio = t[i_ini],
+    i_estable_inicio = i_ini,
+    T_final_est = T_final_est,
+    banda = c(lower = lower, upper = upper),
+    k = k,
+    dt_min = dt_min,
+    transitorio = list(t = t[1:(i_ini - 1)], T = T[1:(i_ini - 1)]),
+    estable = list(t = t[i_ini:n], T = T[i_ini:n])
+  )
+}
+
+```
+
+```{r}
+reg <- detectar_regimen(v2$t, v2$T,
+                        banda_pct = 2,
+                        tail_pct = 20,
+                        ventana_min = 10)
+
+reg$t_estable_inicio
+reg$T_final_est
+reg$banda
+
+plot(v2$t, v2$T, type="o", pch=16, cex=0.4, col="darkgreen",
+     xlab="Tiempo [min]", ylab="Temperatura [°C]",
+     main="Detección automática: transitorio vs estable")
+
+abline(h = reg$T_final_est, col="red", lty=2)
+abline(h = reg$banda, col="gray", lty=3)
+
+if (reg$estable_encontrado) {
+  abline(v = reg$t_estable_inicio, col="black", lty=2)
+}
+
+grid()
+
+
+```
+## Analisis de Temperatura
+
+```{r}
+T_all <- v2$T
+q <- quantile(T_all, probs=c(0.05, 0.5, 0.95), na.rm=TRUE)
+
+hist(T_all, breaks=30, main="Histograma de temperatura",
+     xlab="Temperatura [°C]")
+abline(v=q[c(1,2,3)], lty=c(3,2,3), lwd=c(2,2,2))
+grid()
+
+```
+```{r}
+fase <- ifelse(v2$t < reg$t_estable_inicio, "Transitorio", "Estable")
+boxplot(v2$T ~ fase, col=c("lightblue","lightgreen"),
+        main="Rango por fase", ylab="Temperatura [°C]")
+grid()
+
+```
+```{r}
+band <- 0.02 * max(abs(reg$T_final_est), 1e-9)
+ok <- abs(v2$T - reg$T_final_est) <= band
+
+pct_ok <- mean(ok) * 100
+cat("Porcentaje de tiempo dentro de banda ±2%:", round(pct_ok, 2), "%\n")
+
+plot(v2$t, ok, type="s", ylim=c(-0.1, 1.1),
+     xlab="Tiempo [min]", ylab="Dentro de banda (0/1)",
+     main="Cumplimiento en el tiempo")
+grid()
+
+```
+```{r}
+dt <- median(diff(v2$t))
+dT <- c(NA, diff(v2$T)/dt)
+
+plot(v2$t, dT, type="l",
+     xlab="Tiempo [min]", ylab="dT/dt [°C/min]",
+     main="Tasa de cambio de temperatura")
+abline(h=0, lty=2)
+grid()
+
+```
+
+```{r}
+T_all <- v2$T
+p <- c(0.01, 0.05, 0.50, 0.95, 0.99)
+q <- quantile(T_all, probs = p, na.rm = TRUE)
+
+plot(ecdf(T_all),
+     main = "Distribución acumulada (ECDF) de temperatura",
+     xlab = "Temperatura [°C]", ylab = "F(t) = P(T ≤ x)")
+grid()
+
+abline(v = q, lty = 3)
+text(x = q, y = p, labels = paste0(names(q), "=", round(q, 4)),
+     pos = 4, cex = 0.8)
+
+```
+
+```{r}
+T_all <- v2$T
+d <- density(T_all, na.rm = TRUE)
+
+plot(d, lwd = 2,
+     main = "Densidad de temperatura (KDE)",
+     xlab = "Temperatura [°C]", ylab = "Densidad")
+grid()
+
+q <- quantile(T_all, probs = c(0.05, 0.50, 0.95), na.rm = TRUE)
+abline(v = q, lty = 3)
+legend("topright",
+       legend = paste0(c("P5","P50","P95"), ": ", round(q, 4)),
+       bty = "n")
+
+```
+
+```{r}
+reg <- detectar_regimen(v2$t, v2$T, banda_pct=2, tail_pct=20, ventana_min=10)
+
+fase <- ifelse(v2$t < reg$t_estable_inicio, "Transitorio", "Estable")
+
+boxplot(v2$T ~ fase,
+        col = c("lightblue", "lightgreen"),
+        main = "Temperatura por fase",
+        ylab = "Temperatura [°C]")
+grid()
+
+# opcional: puntos (muestra) para ver dispersión real
+stripchart(v2$T ~ fase, vertical = TRUE, method = "jitter",
+           pch = 16, cex = 0.4, add = TRUE)
+
+```
+```{r}
+k <- 10  # ventana de 10 min (como muestreo 1/min, son 10 puntos)
+T <- v2$T
+t <- v2$t
+
+roll_min <- sapply(seq_along(T), function(i) {
+  i0 <- max(1, i-k+1); min(T[i0:i])
+})
+roll_max <- sapply(seq_along(T), function(i) {
+  i0 <- max(1, i-k+1); max(T[i0:i])
+})
+
+plot(t, T, type="l", lwd=1, col="gray40",
+     main="Rango móvil (min-max) + señal",
+     xlab="Tiempo [min]", ylab="Temperatura [°C]")
+lines(t, roll_min, lwd=2)
+lines(t, roll_max, lwd=2)
+grid()
+legend("topright", legend=c("T", "Min móvil", "Max móvil"),
+       col=c("gray40","black","black"), lty=c(1,1,1), lwd=c(1,2,2), bty="n")
+
+```
+
+```{r}
+T_all <- v2$T
+d <- density(T_all, na.rm = TRUE)
+
+# Escalamos la densidad para dibujar un "violín" horizontal
+x <- d$x
+y <- d$y / max(d$y)  # normaliza 0..1 para el ancho
+
+plot(x, rep(0, length(x)), type="n",
+     ylim = c(-1.2, 1.2),
+     xlab = "Temperatura [°C]", ylab = "",
+     yaxt = "n",
+     main = "Temperatura — KDE en forma de violín (horizontal)")
+
+polygon(c(x, rev(x)), c(y, -rev(y)), border = NA, col = "gray85")
+lines(x, y, lwd = 2)
+lines(x, -y, lwd = 2)
+
+# Percentiles
+q <- quantile(T_all, probs = c(0.05, 0.50, 0.95), na.rm = TRUE)
+abline(v = q, lty = 3)
+text(q, c(1.05, 1.05, 1.05), labels = c("P5","P50","P95"), pos = 3, cex = 0.9)
+
+grid()
+
+```
+```{r}
+T_all <- v2$T
+d <- density(T_all, na.rm = TRUE)
+
+plot(d, lwd = 2,
+     main = "Densidad (KDE) + datos (rug)",
+     xlab = "Temperatura [°C]", ylab = "Densidad")
+rug(T_all, col = "gray40")  # marquitas abajo
+grid()
+
+q <- quantile(T_all, probs = c(0.05, 0.50, 0.95), na.rm = TRUE)
+abline(v = q, lty = 3)
+legend("topright",
+       legend = paste0(c("P5","P50","P95"), ": ", round(q, 4)),
+       bty = "n")
+
+```
+
+```{r}
+reg <- detectar_regimen(v2$t, v2$T, banda_pct=2, tail_pct=20, ventana_min=10)
+
+T_trans <- v2$T[v2$t < reg$t_estable_inicio]
+T_est   <- v2$T[v2$t >= reg$t_estable_inicio]
+
+d1 <- density(T_trans, na.rm = TRUE)
+d2 <- density(T_est,   na.rm = TRUE)
+
+xlim_all <- range(c(d1$x, d2$x))
+ylim_all <- c(0, max(d1$y, d2$y))
+
+plot(d1, lwd = 2, xlim = xlim_all, ylim = ylim_all,
+     main = "KDE por fase: Transitorio vs Estable",
+     xlab = "Temperatura [°C]", ylab = "Densidad")
+lines(d2, lwd = 2)
+
+grid()
+legend("topright",
+       legend = c("Transitorio", "Estable"),
+       lty = 1, lwd = 2, bty = "n")
+
+```
+```{r}
+# Parámetros
+sp <- -0.1
+banda2 <- 0.05 * abs(sp)   # ±2%
+banda5 <- 0.10 * abs(sp)   # ±5%
+
+# Clasificación por rangos
+estado <- rep(NA, length(v2$T))
+
+estado[abs(v2$T - sp) <= banda2] <- "Dentro ±2%"
+estado[abs(v2$T - sp) > banda2 & abs(v2$T - sp) <= banda5] <- "Entre ±2% y ±5%"
+estado[abs(v2$T - sp) > banda5] <- "Fuera ±5%"
+
+# Conteo (tiempo = número de puntos, 1 punto = 1 min)
+conteo <- table(estado)
+
+# Porcentaje
+porcentaje <- round(100 * conteo / sum(conteo), 1)
+
+# Etiquetas
+labels <- paste0(names(porcentaje), "\n", porcentaje, "%")
+
+# Gráfico de torta
+pie(conteo,
+    labels = labels,
+    col = c("darkgreen", "gold", "firebrick"),
+    main = "Distribución del tiempo por rango de temperatura")
+
+```
+```{r}
+# Datos
+T_all <- v2$T
+
+# Percentiles (los mismos que en tu KDE)
+q <- quantile(T_all, probs = c(0.05, 0.50, 0.95), na.rm = TRUE)
+
+# Clasificar cada punto en rangos
+clase <- cut(T_all,
+             breaks = c(-Inf, q[1], q[2], q[3], Inf),
+             labels = c("≤ P5",
+                        "P5 – P50",
+                        "P50 – P95",
+                        "> P95"),
+             right = TRUE)
+
+# Conteo (1 punto = 1 minuto)
+conteo <- table(clase)
+
+# Porcentajes
+porcentaje <- round(100 * conteo / sum(conteo), 1)
+
+# Etiquetas bonitas
+labels <- paste0(names(porcentaje), "\n",
+                 porcentaje, "%")
+
+# Gráfico de torta
+pie(conteo,
+    labels = labels,
+    col = c("steelblue", "darkgreen", "gold", "firebrick"),
+    main = "Distribución de temperatura (equivalente a KDE)")
+
+```
+```{r}
+# Datos
+T_all <- v2$T
+
+# Cuantiles
+q <- quantile(T_all, probs = c(0.05, 0.5, 0.95), na.rm = TRUE)
+
+# Clasificar cada dato según los cuantiles
+clase <- cut(
+  T_all,
+  breaks = c(-Inf, q[1], q[2], q[3], Inf),
+  labels = c("≤ P5",
+             "P5 – P50",
+             "P50 – P95",
+             "> P95"),
+  right = TRUE
+)
+
+# Conteo (1 punto = 1 minuto)
+conteo <- table(clase)
+
+# Porcentaje
+porcentaje <- round(100 * conteo / sum(conteo), 1)
+
+# Etiquetas
+labels <- paste0(names(porcentaje), "\n", porcentaje, "%")
+
+# Gráfico de torta (circular)
+pie(conteo,
+    labels = labels,
+    col = c("steelblue", "darkgreen", "gold", "firebrick"),
+    main = "Distribución de temperatura (por cuantiles)")
+
+```
+```{r}
+# Datos
+T_all <- v2$T
+
+# Límites automáticos (NO se muestran)
+lim <- quantile(T_all, probs = c(0.05, 0.5, 0.95), na.rm = TRUE)
+
+# Clasificación SIMPLE
+zona <- cut(
+  T_all,
+  breaks = c(-Inf, lim[1], lim[2], lim[3], Inf),
+  labels = c("Muy baja",
+             "Baja (normal)",
+             "Alta (normal)",
+             "Muy alta"),
+  right = TRUE
+)
+
+# Tiempo en cada zona
+conteo <- table(zona)
+porcentaje <- round(100 * conteo / sum(conteo), 1)
+
+# Etiquetas claras
+labels <- paste0(names(porcentaje), "\n",
+                 porcentaje, "% del tiempo")
+
+# Gráfico de torta
+pie(conteo,
+    labels = labels,
+    col = c("steelblue", "darkgreen", "gold", "firebrick"),
+    main = "¿Cómo se distribuyó la temperatura en el tiempo?")
+
+```
+
+```{r}
+T_all <- v2$T
+
+k <- 3  # número de grupos (ajusta: 5 a 8 suele ir bien)
+
+# Cortes automáticos (rangos iguales)
+breaks <- seq(min(T_all, na.rm=TRUE), max(T_all, na.rm=TRUE), length.out = k + 1)
+
+# Etiquetas bonitas tipo: [-2.0, -1.5)
+labels <- paste0("[", round(breaks[-(k+1)], 2), ", ", round(breaks[-1], 2), ")")
+
+grupo <- cut(T_all, breaks = breaks, labels = labels, include.lowest = TRUE, right = FALSE)
+
+# Conteo y porcentaje
+conteo <- table(grupo)
+porcentaje <- round(100 * conteo / sum(conteo), 1)
+
+# Tabla resumen
+tabla <- data.frame(
+  Rango = names(conteo),
+  Minutos = as.numeric(conteo),          # 1 punto = 1 minuto
+  Porcentaje = as.numeric(porcentaje)
+)
+
+tabla <- tabla[order(-tabla$Porcentaje), ]  # ordenar por importancia
+tabla
+
+# Gráfico de barras (más claro que torta)
+barplot(tabla$Porcentaje, names.arg = tabla$Rango, las = 2,
+        ylab = "% del tiempo", main = "Tiempo por rango de temperatura")
+grid()
+
+```
+```{r}
+# Datos
+T_all <- v2$T
+t_all <- v2$t
+setpoint <- -0.1
+
+# dt por si acaso (min)
+dt <- median(diff(t_all))
+if (!is.finite(dt) || dt <= 0) dt <- 1
+
+# Porcentajes relativos (usar magnitud del setpoint)
+sp_abs <- abs(setpoint)
+
+# Definir rangos
+rango <- rep(NA_character_, length(T_all))
+
+rango[abs(T_all - setpoint) <= 0.10 * sp_abs] <- "Dentro ±5%"
+rango[abs(T_all - setpoint) > 0.10 * sp_abs &
+      abs(T_all - setpoint) <= 0.20 * sp_abs] <- "Entre ±5% y ±20%"
+rango[abs(T_all - setpoint) > 0.20 * sp_abs] <- "Fuera ±20%"
+
+# Conteo
+conteo <- table(rango)
+
+# Tiempo y porcentaje
+minutos <- as.numeric(conteo) * dt
+porcentaje <- round(100 * minutos / sum(minutos), 1)
+
+# Tabla resumen
+tabla <- data.frame(
+  Rango = names(conteo),
+  Minutos = minutos,
+  Porcentaje = porcentaje
+)
+
+tabla
+
+```
+
+```{r}
+barplot(tabla$Porcentaje,
+        names.arg = tabla$Rango,
+        col = c("darkgreen", "gold", "firebrick"),
+        ylab = "% del tiempo",
+        main = "Distribución del tiempo por rango respecto al setpoint",
+        ylim = c(0, max(tabla$Porcentaje) * 1.2))
+
+grid()
+
+```
+
+```{r}
+T <- v2$T
+SP <- -0.1
+
+dT <- T - SP   # desviación respecto al setpoint (0 = perfecto)
+
+# Umbrales como % del setpoint (en magnitud)
+u5  <- 0.05 * abs(SP)
+u20 <- 0.20 * abs(SP)
+
+hist(dT, breaks = 30,
+     main = "Distribución de la temperatura respecto al setpoint",
+     xlab = expression(Delta*T~"="~T-SP~"(°C)"),
+     col = "gray85", border = "white")
+
+# Líneas guía
+abline(v = 0, lwd = 2)
+abline(v = c(-u5, u5), lty = 2, lwd = 2)
+abline(v = c(-u20, u20), lty = 3, lwd = 2)
+
+grid()
+
+legend("topright",
+       legend = c("Setpoint (ΔT=0)", "Zona ±5%", "Zona ±20%"),
+       lty = c(1, 2, 3), lwd = c(2, 2, 2),
+       bty = "n")
+
+
+d <- density(dT, na.rm = TRUE)
+
+plot(d, lwd = 2,
+     main = "Distribución respecto al setpoint (densidad de ΔT)",
+     xlab = expression(Delta*T~"="~T-SP~"(°C)"),
+     ylab = "Densidad")
+
+abline(v = 0, lwd = 2)
+abline(v = c(-u5, u5), lty = 2, lwd = 2)
+abline(v = c(-u20, u20), lty = 3, lwd = 2)
+
+grid()
+legend("topright",
+       legend = c("ΔT=0 (setpoint)", "±5%", "±20%"),
+       lty = c(1,2,3), lwd = c(2,2,2), bty = "n")
+
+```
+```{r}
+# Datos
+T <- v2$T
+t <- v2$t
+SP <- -0.1
+
+# dt (por si acaso)
+dt <- median(diff(t))
+if (!is.finite(dt) || dt <= 0) dt <- 1
+
+# Desviación respecto al setpoint
+dT <- T - SP
+
+# Umbrales (% del setpoint)
+u5  <- 0.05 * abs(SP)
+u20 <- 0.20 * abs(SP)
+
+# Clasificación por zona
+zona <- character(length(dT))
+
+zona[dT < -u20] <- "Muy frío (fuera ±20%)"
+zona[dT >= -u20 & dT < -u5] <- "Frío (±5–20%)"
+zona[abs(dT) <= u5] <- "En setpoint (±5%)"
+zona[dT > u5 & dT <= u20] <- "Caliente (±5–20%)"
+zona[dT > u20] <- "Muy caliente (fuera ±20%)"
+
+# Orden lógico (izq → der)
+niveles <- c("Muy frío (fuera ±20%)",
+             "Frío (±5–20%)",
+             "En setpoint (±5%)",
+             "Caliente (±5–20%)",
+             "Muy caliente (fuera ±20%)")
+
+zona <- factor(zona, levels = niveles)
+
+# Conteo y porcentaje
+conteo <- table(zona)
+porcentaje <- round(100 * conteo / sum(conteo), 1)
+
+# Matriz para barra apilada (1 sola barra)
+M <- matrix(porcentaje, nrow = length(porcentaje), ncol = 1)
+
+# Colores tipo semáforo
+cols <- c("steelblue4", "deepskyblue3", "darkgreen", "gold", "firebrick3")
+
+# Gráfico
+barplot(M,
+        horiz = TRUE,
+        col = cols,
+        xlab = "% del tiempo",
+        main = "Distribución de la temperatura respecto al setpoint",
+        border = NA,
+        xlim = c(0, 100),
+        axes = TRUE)
+
+# Etiquetas de porcentaje sobre la barra
+pos <- cumsum(porcentaje) - porcentaje / 2
+text(pos, 1, paste0(porcentaje, "%"), cex = 0.9)
+
+legend("bottom",
+       legend = niveles,
+       fill = cols,
+       horiz = TRUE,
+       bty = "n")
+
+```
+
+```{r}
+plot_barra_densidad_sp <- function(T_all, setpoint, bins = 30) {
+
+  breaks <- seq(min(T_all, na.rm=TRUE), max(T_all, na.rm=TRUE), length.out = bins + 1)
+  h <- hist(T_all, breaks = breaks, plot = FALSE)
+
+  prop <- h$counts / sum(h$counts) * 100
+
+  # Centros de cada bin para saber si está bajo o sobre setpoint
+  mids <- h$mids
+
+  # Colores: azul si está bajo SP, rojo si está sobre SP, verde si bin toca SP
+  cols <- ifelse(mids < setpoint, "steelblue3",
+                 ifelse(mids > setpoint, "firebrick3", "darkgreen"))
+
+  M <- matrix(prop, ncol = 1)
+
+  barplot(M,
+          horiz = TRUE,
+          col = cols,
+          border = NA,
+          xlab = "% del tiempo",
+          main = paste0("Distribución en 1 barra (setpoint = ", setpoint, "°C)"),
+          xlim = c(0, 100))
+
+  grid()
+
+  legend("bottom",
+         legend = c("Más frío que SP", "Cerca/igual a SP", "Más caliente que SP"),
+         fill = c("steelblue3", "darkgreen", "firebrick3"),
+         horiz = TRUE,
+         bty = "n")
+}
+
+plot_barra_densidad_sp(v2$T, setpoint = -0.1, bins = 30)
+
+```
+
+```{r}
+# ===========================
+# TODO EN UNO: detectar estable + calcular % por rangos + barra única
+# ===========================
+
+# --- 1) Función para detectar transitorio / estable ---
+detectar_regimen <- function(t, T,
+                             banda_pct = 2,
+                             tail_pct = 20,
+                             ventana_min = 10,
+                             dt_min = NULL) {
+
+  stopifnot(length(t) == length(T), length(t) >= 5)
+
+  if (is.null(dt_min)) dt_min <- median(diff(t))
+
+  k <- max(1, round(ventana_min / dt_min))
+
+  n <- length(T)
+  tail_n <- max(5, floor((tail_pct / 100) * n))
+  T_final_est <- mean(T[(n - tail_n + 1):n], na.rm = TRUE)
+
+  escala <- max(abs(T_final_est), diff(range(T)), 1e-6)
+  band <- (banda_pct / 100) * escala
+  lower <- T_final_est - band
+  upper <- T_final_est + band
+
+  dentro <- (T >= lower) & (T <= upper)
+  dentro_num <- as.integer(dentro)
+  runsum <- stats::filter(dentro_num, rep(1, k), sides = 1)
+
+  i_est <- which(runsum >= k)[1]
+  if (is.na(i_est)) {
+    return(list(
+      estable_encontrado = FALSE,
+      t_estable_inicio = NA_real_,
+      T_final_est = T_final_est,
+      banda = c(lower = lower, upper = upper),
+      estable = list(t = numeric(0), T = numeric(0))
+    ))
+  }
+
+  i_ini <- max(1, i_est - k + 1)
+
+  list(
+    estable_encontrado = TRUE,
+    t_estable_inicio = t[i_ini],
+    T_final_est = T_final_est,
+    banda = c(lower = lower, upper = upper),
+    estable = list(t = t[i_ini:n], T = T[i_ini:n])
+  )
+}
+
+# --- 2) DATOS (ya los tienes): v2$t y v2$T ---
+t <- v2$t
+T <- v2$T
+
+# --- 3) Detectar estado estable ---
+reg <- detectar_regimen(t, T, banda_pct = 2, tail_pct = 20, ventana_min = 10)
+if (!reg$estable_encontrado) stop("No se detectó estado estable con esos parámetros.")
+
+T_est <- reg$estable$T
+
+# --- 4) Definir rangos de temperatura (AJUSTA ESTOS VALORES) ---
+breaks <- c(-2, -0.1, 0, 0.5)
+labels <- c("-2 a -0.1 °C", "-0.1 a 0 °C", "0 a 0.5 °C")
+
+# Clasificar (solo estable)
+grupo <- cut(T_est,
+             breaks = breaks,
+             labels = labels,
+             include.lowest = TRUE,
+             right = FALSE)
+
+# % de tiempo por rango (1 punto = 1 min)
+conteo <- table(grupo)
+porcentaje <- round(100 * conteo / sum(conteo), 1)
+
+# --- 5) Barra única con porcentajes + marcas de límites ---
+x_start <- c(0, cumsum(porcentaje)[-length(porcentaje)])
+x_end   <- cumsum(porcentaje)
+
+cols <- c("steelblue3", "darkgreen", "gold")  # frío, ok, caliente (ajusta si quieres)
+
+plot(NA,
+     xlim = c(0, 100), ylim = c(0, 1),
+     yaxt = "n", ylab = "",
+     xlab = "% del tiempo (estado estable)",
+     main = paste0("Distribución de temperatura (estable) | inicio estable: ",
+                   round(reg$t_estable_inicio, 1), " min"),
+     bty = "n")
+
+for (i in seq_along(porcentaje)) {
+  rect(x_start[i], 0.45, x_end[i], 0.55, col = cols[i], border = NA)
+  text((x_start[i] + x_end[i]) / 2, 0.68, paste0(porcentaje[i], "%"), cex = 1)
+}
+
+# Etiquetas de límites abajo (los tuyos: -2, -0.1, 0, 0.5)
+temp_labels <- as.character(breaks)
+temp_pos <- c(0, x_end)   # ponemos cada límite debajo del final de cada segmento
+
+text(temp_pos, 0.30, temp_labels, cex = 0.95)
+grid()
+
+# (Opcional) imprimir tabla
+tabla <- data.frame(Rango = names(conteo),
+                    Minutos = as.numeric(conteo),
+                    Porcentaje = as.numeric(porcentaje))
+print(tabla)
+
+```
+
+```{r}
+# ===========================
+# TODO EN UNO:
+# 1) Detecta estado estable
+# 2) Usa LOS MISMOS RANGOS (definidos por ti)
+# 3) Calcula % por rango para TRANSITORIO y ESTABLE
+# 4) Grafica 2 barras apiladas (una por fase) con % + tabla
+# ===========================
+
+# --- Función para detectar transitorio / estable ---
+detectar_regimen <- function(t, T,
+                             banda_pct = 2,
+                             tail_pct = 20,
+                             ventana_min = 10,
+                             dt_min = NULL) {
+
+  stopifnot(length(t) == length(T), length(t) >= 5)
+
+  if (is.null(dt_min)) dt_min <- median(diff(t))
+  k <- max(1, round(ventana_min / dt_min))
+
+  n <- length(T)
+  tail_n <- max(5, floor((tail_pct / 100) * n))
+  T_final_est <- mean(T[(n - tail_n + 1):n], na.rm = TRUE)
+
+  escala <- max(abs(T_final_est), diff(range(T)), 1e-6)
+  band <- (banda_pct / 100) * escala
+  lower <- T_final_est - band
+  upper <- T_final_est + band
+
+  dentro <- (T >= lower) & (T <= upper)
+  runsum <- stats::filter(as.integer(dentro), rep(1, k), sides = 1)
+
+  i_est <- which(runsum >= k)[1]
+  if (is.na(i_est)) {
+    return(list(
+      estable_encontrado = FALSE,
+      t_estable_inicio = NA_real_,
+      T_final_est = T_final_est,
+      banda = c(lower = lower, upper = upper),
+      i_estable_inicio = NA_integer_
+    ))
+  }
+
+  i_ini <- max(1, i_est - k + 1)
+
+  list(
+    estable_encontrado = TRUE,
+    t_estable_inicio = t[i_ini],
+    T_final_est = T_final_est,
+    banda = c(lower = lower, upper = upper),
+    i_estable_inicio = i_ini
+  )
+}
+
+# --- DATOS (ya los tienes): v2$t y v2$T ---
+t <- v2$t
+T <- v2$T
+
+# --- 1) Detectar estado estable ---
+reg <- detectar_regimen(t, T, banda_pct = 2, tail_pct = 20, ventana_min = 10)
+if (!reg$estable_encontrado) stop("No se detectó estado estable con esos parámetros.")
+
+i0 <- reg$i_estable_inicio
+T_trans <- T[1:(i0-1)]
+T_est   <- T[i0:length(T)]
+
+# --- 2) RANGOS (los que definiste para el estable) ---
+# Ajusta estos valores si cambia tu criterio de túnel:
+breaks_core <- c(-2, -0.1, 0, 0.5)
+
+# Para poder contabilizar TODO (incluye lo que cae fuera de esos rangos),
+# extendemos con -Inf y +Inf, manteniendo tus cortes centrales.
+breaks <- c(-Inf, breaks_core, Inf)
+
+labels <- c(paste0("< ", breaks_core[1], " °C"),
+            paste0(breaks_core[1], " a ", breaks_core[2], " °C"),
+            paste0(breaks_core[2], " a ", breaks_core[3], " °C"),
+            paste0(breaks_core[3], " a ", breaks_core[4], " °C"),
+            paste0("≥ ", breaks_core[4], " °C"))
+
+# --- 3) Función auxiliar: % por rango ---
+por_rango_pct <- function(x) {
+  g <- cut(x, breaks = breaks, labels = labels, include.lowest = TRUE, right = FALSE)
+  cts <- table(g)
+  pct <- as.numeric(cts) / sum(cts) * 100
+  names(pct) <- names(cts)
+  pct
+}
+
+pct_trans <- por_rango_pct(T_trans)
+pct_est   <- por_rango_pct(T_est)
+
+# --- 4) Matriz para barra apilada (2 barras: Transitorio y Estable) ---
+# Filas = rangos, Columnas = fase
+M <- cbind(Transitorio = pct_trans, Estable = pct_est)
+
+# Colores por rango (frío -> ok -> caliente)
+cols <- c("steelblue4", "steelblue3", "darkgreen", "gold", "firebrick3")
+
+# --- 5) Gráfico: 2 barras apiladas horizontales + % en segmentos ---
+op <- par(no.readonly = TRUE)
+par(mar = c(4, 4, 4, 2))
+
+bp <- barplot(M,
+              horiz = TRUE,
+              col = cols,
+              border = NA,
+              xlim = c(0, 100),
+              xlab = "% del tiempo",
+              main = paste0("Distribución por rangos usando los cortes del estable\n",
+                            "Inicio estable detectado: ", round(reg$t_estable_inicio, 1), " min"))
+
+grid()
+
+legend("bottom",
+       legend = rownames(M),
+       fill = cols,
+       horiz = TRUE,
+       bty = "n")
+
+# Etiquetas de % dentro de cada segmento (solo si el segmento es suficientemente grande)
+for (j in 1:ncol(M)) {
+  cum <- cumsum(M[, j])
+  mid <- cum - M[, j] / 2
+  for (i in 1:nrow(M)) {
+    if (M[i, j] >= 3) {  # muestra etiqueta si >= 3%
+      text(mid[i], bp[j], paste0(round(M[i, j], 1), "%"), cex = 0.85)
+    }
+  }
+}
+
+par(op)
+
+# --- 6) Tabla resumen (minutos y %) por fase y rango ---
+# Asumiendo 1 punto = 1 minuto (como lo definiste)
+tabla <- data.frame(
+  Rango = rownames(M),
+  Transitorio_pct = round(M[, "Transitorio"], 1),
+  Estable_pct = round(M[, "Estable"], 1),
+  Transitorio_min = as.integer(round(M[, "Transitorio"] / 100 * length(T_trans))),
+  Estable_min = as.integer(round(M[, "Estable"] / 100 * length(T_est)))
+)
+
+print(tabla)
+
+```
+
+```{r}
+# ===========================
+# UNA SOLA BARRA:
+# 1) Detecta estado estable
+# 2) Usa TUS rangos (definidos por ti)
+# 3) Calcula la distribución del TRANSITORIO + ESTABLE juntos
+# 4) Dibuja 1 sola barra apilada con % + tabla
+# ===========================
+
+detectar_regimen <- function(t, T,
+                             banda_pct = 2,
+                             tail_pct = 20,
+                             ventana_min = 10,
+                             dt_min = NULL) {
+
+  stopifnot(length(t) == length(T), length(t) >= 5)
+
+  if (is.null(dt_min)) dt_min <- median(diff(t))
+  k <- max(1, round(ventana_min / dt_min))
+
+  n <- length(T)
+  tail_n <- max(5, floor((tail_pct / 100) * n))
+  T_final_est <- mean(T[(n - tail_n + 1):n], na.rm = TRUE)
+
+  escala <- max(abs(T_final_est), diff(range(T)), 1e-6)
+  band <- (banda_pct / 100) * escala
+  lower <- T_final_est - band
+  upper <- T_final_est + band
+
+  dentro <- (T >= lower) & (T <= upper)
+  runsum <- stats::filter(as.integer(dentro), rep(1, k), sides = 1)
+
+  i_est <- which(runsum >= k)[1]
+  if (is.na(i_est)) {
+    return(list(
+      estable_encontrado = FALSE,
+      t_estable_inicio = NA_real_,
+      T_final_est = T_final_est,
+      banda = c(lower = lower, upper = upper),
+      i_estable_inicio = NA_integer_
+    ))
+  }
+
+  i_ini <- max(1, i_est - k + 1)
+
+  list(
+    estable_encontrado = TRUE,
+    t_estable_inicio = t[i_ini],
+    T_final_est = T_final_est,
+    banda = c(lower = lower, upper = upper),
+    i_estable_inicio = i_ini
+  )
+}
+
+# --- DATOS ---
+t <- v2$t
+T <- v2$T
+
+# --- 1) Detectar estado estable ---
+reg <- detectar_regimen(t, T, banda_pct = 2, tail_pct = 20, ventana_min = 10)
+if (!reg$estable_encontrado) stop("No se detectó estado estable con esos parámetros.")
+
+i0 <- reg$i_estable_inicio
+
+# --- 2) RANGOS (los del estable) ---
+# Ajusta estos cortes a tu criterio de túnel:
+breaks_core <- c(-2, -0.1, 0, 0.5)
+
+# Para incluir todo lo que caiga fuera de esos rangos:
+breaks <- c(-Inf, breaks_core, Inf)
+
+labels <- c(paste0("< ", breaks_core[1], " °C"),
+            paste0(breaks_core[1], " a ", breaks_core[2], " °C"),
+            paste0(breaks_core[2], " a ", breaks_core[3], " °C"),
+            paste0(breaks_core[3], " a ", breaks_core[4], " °C"),
+            paste0("≥ ", breaks_core[4], " °C"))
+
+# --- 3) Clasificar TODA la data (transitorio + estable) en esos rangos ---
+grupo <- cut(T, breaks = breaks, labels = labels, include.lowest = TRUE, right = FALSE)
+
+conteo <- table(grupo)
+pct_total <- round(100 * conteo / sum(conteo), 1)
+
+# --- 4) UNA sola barra apilada horizontal ---
+x_start <- c(0, cumsum(pct_total)[-length(pct_total)])
+x_end   <- cumsum(pct_total)
+
+cols <- c("steelblue4", "steelblue3", "darkgreen", "gold", "firebrick3")
+
+plot(NA,
+     xlim = c(0, 100), ylim = c(0, 1),
+     yaxt = "n", ylab = "",
+     xlab = "% del tiempo (todo el proceso)",
+     main = paste0("Distribución de temperatura (rangos definidos por estable)\n",
+                   "Inicio estable detectado: ", round(reg$t_estable_inicio, 1), " min"),
+     bty = "n")
+
+for (i in seq_along(pct_total)) {
+  rect(x_start[i], 0.45, x_end[i], 0.55, col = cols[i], border = NA)
+
+  # % arriba (solo si es visible)
+  if (pct_total[i] >= 2) {
+    text((x_start[i] + x_end[i]) / 2, 0.68, paste0(pct_total[i], "%"), cex = 0.9)
+  }
+}
+
+# Marcar el inicio del estado estable como % del tiempo total (solo referencia)
+pct_estable_inicio <- round(100 * (i0 - 1) / length(T), 1)
+abline(v = pct_estable_inicio, lty = 2)  # línea punteada: fin del transitorio (en % del tiempo)
+text(pct_estable_inicio, 0.30, "Fin transitorio", pos = 3, cex = 0.85)
+
+grid()
+
+legend("bottom",
+       legend = labels,
+       fill = cols,
+       horiz = TRUE,
+       bty = "n")
+
+# --- 5) Tabla resumen (minutos y %) ---
+tabla <- data.frame(
+  Rango = names(conteo),
+  Minutos = as.numeric(conteo),         # 1 punto = 1 minuto
+  Porcentaje = as.numeric(pct_total)
+)
+
+print(tabla)
+
+```
+
+```{r}
+# ===========================
+# UNA SOLA BARRA:
+# 1) Detecta estado estable
+# 2) Usa TUS rangos (definidos por ti)
+# 3) Calcula la distribución del TRANSITORIO + ESTABLE juntos
+# 4) Dibuja 1 sola barra apilada con % + tabla
+# ===========================
+
+detectar_regimen <- function(t, T,
+                             banda_pct = 2,
+                             tail_pct = 20,
+                             ventana_min = 10,
+                             dt_min = NULL) {
+
+  stopifnot(length(t) == length(T), length(t) >= 5)
+
+  if (is.null(dt_min)) dt_min <- median(diff(t))
+  k <- max(1, round(ventana_min / dt_min))
+
+  n <- length(T)
+  tail_n <- max(5, floor((tail_pct / 100) * n))
+  T_final_est <- mean(T[(n - tail_n + 1):n], na.rm = TRUE)
+
+  escala <- max(abs(T_final_est), diff(range(T)), 1e-6)
+  band <- (banda_pct / 100) * escala
+  lower <- T_final_est - band
+  upper <- T_final_est + band
+
+  dentro <- (T >= lower) & (T <= upper)
+  runsum <- stats::filter(as.integer(dentro), rep(1, k), sides = 1)
+
+  i_est <- which(runsum >= k)[1]
+  if (is.na(i_est)) {
+    return(list(
+      estable_encontrado = FALSE,
+      t_estable_inicio = NA_real_,
+      T_final_est = T_final_est,
+      banda = c(lower = lower, upper = upper),
+      i_estable_inicio = NA_integer_
+    ))
+  }
+
+  i_ini <- max(1, i_est - k + 1)
+
+  list(
+    estable_encontrado = TRUE,
+    t_estable_inicio = t[i_ini],
+    T_final_est = T_final_est,
+    banda = c(lower = lower, upper = upper),
+    i_estable_inicio = i_ini
+  )
+}
+
+# --- DATOS ---
+t <- v2$t
+T <- v2$T
+
+# --- 1) Detectar estado estable ---
+reg <- detectar_regimen(t, T, banda_pct = 2, tail_pct = 20, ventana_min = 10)
+if (!reg$estable_encontrado) stop("No se detectó estado estable con esos parámetros.")
+
+i0 <- reg$i_estable_inicio
+
+# --- 2) RANGOS (los del estable) ---
+# Ajusta estos cortes a tu criterio de túnel:
+breaks_core <- c(-2, -0.1, 0, 0.5)
+
+# Para incluir todo lo que caiga fuera de esos rangos:
+breaks <- c(-Inf, breaks_core, Inf)
+
+labels <- c(paste0("< ", breaks_core[1], " °C"),
+            paste0(breaks_core[1], " a ", breaks_core[2], " °C"),
+            paste0(breaks_core[2], " a ", breaks_core[3], " °C"),
+            paste0(breaks_core[3], " a ", breaks_core[4], " °C"),
+            paste0("≥ ", breaks_core[4], " °C"))
+
+# --- 3) Clasificar TODA la data (transitorio + estable) en esos rangos ---
+grupo <- cut(T, breaks = breaks, labels = labels, include.lowest = TRUE, right = FALSE)
+
+conteo <- table(grupo)
+pct_total <- round(100 * conteo / sum(conteo), 1)
+
+# --- 4) UNA sola barra apilada horizontal ---
+x_start <- c(0, cumsum(pct_total)[-length(pct_total)])
+x_end   <- cumsum(pct_total)
+
+cols <- c("steelblue4", "steelblue3", "darkgreen", "gold", "firebrick3")
+
+plot(NA,
+     xlim = c(0, 100), ylim = c(0, 1),
+     yaxt = "n", ylab = "",
+     xlab = "% del tiempo (todo el proceso)",
+     main = paste0("Distribución de temperatura (rangos definidos por estable)\n",
+                   "Inicio estable detectado: ", round(reg$t_estable_inicio, 1), " min"),
+     bty = "n")
+
+for (i in seq_along(pct_total)) {
+  rect(x_start[i], 0.45, x_end[i], 0.55, col = cols[i], border = NA)
+
+  # % arriba (solo si es visible)
+  if (pct_total[i] >= 2) {
+    text((x_start[i] + x_end[i]) / 2, 0.68, paste0(pct_total[i], "%"), cex = 0.9)
+  }
+}
+
+# Marcar el inicio del estado estable como % del tiempo total (solo referencia)
+pct_estable_inicio <- round(100 * (i0 - 1) / length(T), 1)
+abline(v = pct_estable_inicio, lty = 2)  # línea punteada: fin del transitorio (en % del tiempo)
+text(pct_estable_inicio, 0.30, "Fin transitorio", pos = 3, cex = 0.85)
+
+grid()
+
+legend("bottom",
+       legend = labels,
+       fill = cols,
+       horiz = TRUE,
+       bty = "n")
+
+# --- 5) Tabla resumen (minutos y %) ---
+tabla <- data.frame(
+  Rango = names(conteo),
+  Minutos = as.numeric(conteo),         # 1 punto = 1 minuto
+  Porcentaje = as.numeric(pct_total)
+)
+
+print(tabla)
+
+```
+

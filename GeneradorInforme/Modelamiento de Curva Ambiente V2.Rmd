@@ -1,0 +1,1308 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# Modulamiento de Temperatura V2
+
+## Desarrollo de la curva
+
+```{r}
+curva_temp_v2 <- function(T0 = 24,
+                          setpoint = -0.1,
+                          duracion_proceso_min = 480,
+                          pct_transitorio = 20,     # % del tiempo total
+                          overshoot_pct = 10,       # % overshoot
+                          osc_estable_pct = 2,      # % amplitud ondulaciones en estable
+                          ruido_estable_pct = 0.6,  # % ruido (extra) en estable
+                          n = 2000,
+                          seed = 123) {
+
+  set.seed(seed)
+
+  # Tiempo
+  t <- seq(0, duracion_proceso_min, length.out = n)
+
+  # --- 1) Modelo 2° orden subamortiguado para el transitorio ---
+  PO <- overshoot_pct / 100
+  fz <- function(z) exp(-z*pi/sqrt(1 - z^2)) - PO
+  zeta <- uniroot(fz, c(0.01, 0.99))$root
+
+  t_trans_end <- (pct_transitorio / 100) * duracion_proceso_min
+  if (t_trans_end <= 0) t_trans_end <- duracion_proceso_min * 0.1
+
+  # Hacemos que el "settling" ocurra aprox al final del transitorio
+  Ts_eff <- t_trans_end
+  wn <- 4/(zeta * Ts_eff)
+  wd <- wn * sqrt(1 - zeta^2)
+  alpha <- zeta / sqrt(1 - zeta^2)
+
+  step01 <- 1 - exp(-zeta * wn * t) * (cos(wd * t) + alpha * sin(wd * t))
+  T_base <- T0 + (setpoint - T0) * step01
+
+  # --- 2) “Estado estable” con ondulaciones + ruido (más notorio) ---
+  # Escala de amplitud (si setpoint es muy pequeño, usa el salto)
+  escala <- max(abs(setpoint), abs(setpoint - T0), 1)
+
+  A_ond <- (osc_estable_pct / 100) * escala
+  A_ruido <- (ruido_estable_pct / 100) * escala
+
+  # Ondulaciones: mezcla de dos senos con fases aleatorias
+  phi1 <- runif(1, 0, 2*pi)
+  phi2 <- runif(1, 0, 2*pi)
+
+  # Frecuencias (en rad/min) escogidas para “ruido ondulante” visible
+  w1 <- 2*pi / 18   # ~ periodo 18 min
+  w2 <- 2*pi / 7    # ~ periodo 7 min
+
+  ond <- A_ond * (0.65*sin(w1*t + phi1) + 0.35*sin(w2*t + phi2))
+
+  # Ruido aleatorio (gaussiano) + un poco de suavizado opcional
+  ruido <- rnorm(length(t), mean = 0, sd = A_ruido)
+
+  # Aplica ondulaciones/ruido SOLO después del fin del transitorio
+  mask_estable <- t >= t_trans_end
+  T <- T_base
+  T[mask_estable] <- T_base[mask_estable] + ond[mask_estable] + ruido[mask_estable]
+
+  # tp_objetivo (primer cruce con setpoint)
+  tol <- 1e-6
+  i_tp <- which(T <= setpoint + tol)[1]
+  if (is.na(i_tp)) i_tp <- which.min(abs(T - setpoint))
+  tp_obj <- t[i_tp]
+
+  list(t = t,
+       T = T,
+       T_base = T_base,
+       zeta = zeta, wn = wn, wd = wd,
+       t_trans_end = t_trans_end,
+       tp_obj = tp_obj,
+       i_tp = i_tp,
+       params = list(T0=T0, setpoint=setpoint, duracion_proceso_min=duracion_proceso_min,
+                     pct_transitorio=pct_transitorio, overshoot_pct=overshoot_pct,
+                     osc_estable_pct=osc_estable_pct, ruido_estable_pct=ruido_estable_pct,
+                     n=n, seed=seed))
+}
+
+plot_transitorio_estable <- function(t, T, setpoint, t_corte,
+                                     titulo = "Curva",
+                                     banda_pct = 2) {
+
+  # Banda ±2% alrededor del setpoint (manejo correcto si es negativo)
+  band <- (banda_pct/100) * max(abs(setpoint), 1e-9)
+  upper <- setpoint + band
+  lower <- setpoint - band
+
+  # Índices
+  idx_trans <- t <= t_corte
+  idx_est <- t >= t_corte
+
+  op <- par(no.readonly = TRUE)
+  par(mfrow = c(2,1), mar = c(4,4,3,1))
+
+  # --- Transitorio ---
+  plot(t[idx_trans], T[idx_trans], type="l", lwd=2, col="blue",
+       xlab="Tiempo [min]", ylab="Temperatura [°C]",
+       main=paste0(titulo, " — Estado transitorio (0 a ", round(t_corte,2), " min)"))
+  abline(h=setpoint, col="red", lty=2)
+  abline(v=t_corte, col="black", lty=2)
+  grid()
+
+  # --- Estable (zoom) ---
+  t2 <- t[idx_est]
+  T2 <- T[idx_est]
+
+  yr <- range(T2, upper, lower)
+  zoom_pad <- max((yr[2]-yr[1])*0.2, band*6, 1e-6)
+  ylim2 <- c(yr[1]-zoom_pad, yr[2]+zoom_pad)
+
+  plot(t2, T2, type="l", lwd=2, col="darkgreen",
+       xlab="Tiempo [min]", ylab="Temperatura [°C]",
+       main=paste0(titulo, " — Estado estable (zoom)"),
+       ylim=ylim2)
+  abline(h=setpoint, col="red", lty=2)
+  abline(h=c(lower, upper), col="gray", lty=3)
+  abline(v=t_corte, col="black", lty=2)
+  grid()
+
+  par(op)
+}
+
+
+```
+
+```{r}
+v2 <- curva_temp_v2(T0 = 24,
+                    setpoint = -0.1,
+                    duracion_proceso_min = 8*60,
+                    pct_transitorio = 80,     # ej: 20% del tiempo total como transitorio
+                    overshoot_pct = 10,
+                    osc_estable_pct = 1,      # ondulaciones más notorias
+                    ruido_estable_pct = 0.1,  # más ruido en estable
+                    n = 8*60+1,
+                    seed = 6)
+
+plot(v2$t, v2$T,
+     type = "o", pch = 16, cex = 0.45, lwd = 1.5,
+     col = "darkgreen",
+     xlab = "Tiempo [min]",
+     ylab = "Temperatura [°C]",
+     main = "Curva de Temperatura")
+grid()
+
+plot_transitorio_estable(v2$t, v2$T, setpoint = -0.1, t_corte = v2$t_trans_end,
+                         titulo = "Curva de Temperatura")
+
+
+
+```
+## Detector de Estado
+
+```{r}
+detectar_regimen <- function(t, T,
+                             banda_pct = 2,          # ±2% por defecto
+                             tail_pct = 20,          # % final para estimar estado estable
+                             ventana_min = 10,       # minutos consecutivos dentro de banda
+                             dt_min = NULL) {        # si no lo das, se estima
+
+  stopifnot(length(t) == length(T), length(t) >= 5)
+
+  # Estimar dt (asumiendo muestreo casi uniforme)
+  if (is.null(dt_min)) {
+    dt_min <- median(diff(t))
+  }
+
+  # Cuántos puntos equivalen a ventana_min
+  k <- max(1, round(ventana_min / dt_min))
+
+  # 1) Estimar valor final con el último tail_pct%
+  n <- length(T)
+  tail_n <- max(5, floor((tail_pct / 100) * n))
+  T_final_est <- mean(T[(n - tail_n + 1):n], na.rm = TRUE)
+
+  # 2) Banda ±banda_pct alrededor del valor final
+  #    Si el valor final es muy cercano a 0, usamos escala por rango para evitar banda cero
+  escala <- max(abs(T_final_est), diff(range(T)), 1e-6)
+  band <- (banda_pct / 100) * escala
+  lower <- T_final_est - band
+  upper <- T_final_est + band
+
+  dentro <- (T >= lower) & (T <= upper)
+
+  # 3) Primer índice donde se mantiene dentro por k puntos seguidos
+  #    Usamos running sum de TRUEs
+  dentro_num <- as.integer(dentro)
+  runsum <- stats::filter(dentro_num, rep(1, k), sides = 1)
+
+  i_est <- which(runsum >= k)[1]
+  if (is.na(i_est)) {
+    # No se encontró estado estable según criterio
+    return(list(
+      estable_encontrado = FALSE,
+      t_estable_inicio = NA_real_,
+      i_estable_inicio = NA_integer_,
+      T_final_est = T_final_est,
+      banda = c(lower = lower, upper = upper),
+      k = k,
+      dt_min = dt_min,
+      transitorio = list(t = t, T = T),
+      estable = list(t = numeric(0), T = numeric(0))
+    ))
+  }
+
+  # Ajuste: i_est es el final de la primera ventana; el inicio real es:
+  i_ini <- max(1, i_est - k + 1)
+
+  list(
+    estable_encontrado = TRUE,
+    t_estable_inicio = t[i_ini],
+    i_estable_inicio = i_ini,
+    T_final_est = T_final_est,
+    banda = c(lower = lower, upper = upper),
+    k = k,
+    dt_min = dt_min,
+    transitorio = list(t = t[1:(i_ini - 1)], T = T[1:(i_ini - 1)]),
+    estable = list(t = t[i_ini:n], T = T[i_ini:n])
+  )
+}
+
+```
+
+```{r}
+reg <- detectar_regimen(v2$t, v2$T,
+                        banda_pct = 2,
+                        tail_pct = 20,
+                        ventana_min = 10)
+
+reg$t_estable_inicio
+reg$T_final_est
+reg$banda
+
+plot(v2$t, v2$T, type="o", pch=16, cex=0.4, col="darkgreen",
+     xlab="Tiempo [min]", ylab="Temperatura [°C]",
+     main="Detección automática: transitorio vs estable")
+
+abline(h = reg$T_final_est, col="red", lty=2)
+abline(h = reg$banda, col="gray", lty=3)
+
+if (reg$estable_encontrado) {
+  abline(v = reg$t_estable_inicio, col="black", lty=2)
+}
+
+grid()
+
+
+```
+## Analisis de Temperatura
+
+```{r}
+T_all <- v2$T
+q <- quantile(T_all, probs=c(0.05, 0.5, 0.95), na.rm=TRUE)
+
+hist(T_all, breaks=30, main="Histograma de temperatura",
+     xlab="Temperatura [°C]")
+abline(v=q[c(1,2,3)], lty=c(3,2,3), lwd=c(2,2,2))
+grid()
+
+```
+
+```{r}
+tabla_densidad_por_bandas <- function(T,
+                                      setpoint,
+                                      banda_lower,
+                                      banda_upper,
+                                      lim_inf = min(T, na.rm = TRUE),
+                                      lim_sup = max(T, na.rm = TRUE)) {
+
+  T <- T[is.finite(T)]
+  N <- length(T)
+  stopifnot(N > 0)
+
+  # Cortes (incluye: límites, banda y setpoint)
+  cortes <- c(lim_inf, banda_lower, setpoint, banda_upper, lim_sup)
+  cortes <- sort(unique(cortes))
+
+  # Etiquetas de intervalos
+  labs <- paste0("[", head(cortes, -1), ", ", tail(cortes, -1), ")")
+  labs[length(labs)] <- paste0("[", cortes[length(cortes)-1], ", ", cortes[length(cortes)], "]") # último cerrado
+
+  # Clasificación por intervalos
+  grp <- cut(T, breaks = cortes, include.lowest = TRUE, right = FALSE, labels = labs)
+
+  # Conteos
+  tab <- as.data.frame(table(grp), stringsAsFactors = FALSE)
+  names(tab) <- c("intervalo", "n")
+  tab$n <- as.integer(tab$n)
+  tab$pct <- 100 * tab$n / N
+
+  # Agregar límites numéricos por intervalo
+  lowers <- head(cortes, -1)
+  uppers <- tail(cortes, -1)
+  width <- uppers - lowers
+
+  tab$lim_inf <- lowers
+  tab$lim_sup <- uppers
+  tab$ancho  <- width
+
+  # Densidad empírica por °C (n / (N * ancho))
+  tab$densidad <- ifelse(tab$ancho > 0, tab$n / (N * tab$ancho), NA_real_)
+
+  # Marcas útiles (dónde caen banda y setpoint)
+  tab$contiene_setpoint <- (setpoint >= tab$lim_inf) & (setpoint < tab$lim_sup) |
+                           (setpoint == tab$lim_sup & tab$lim_sup == max(cortes))
+  tab$esta_en_banda <- (tab$lim_inf >= banda_lower & tab$lim_sup <= banda_upper)
+
+  tab
+}
+
+```
+
+```{r}
+T_all <- v2$T
+setpoint <- -0.1
+
+tabla <- tabla_densidad_por_bandas(
+  T = T_all,
+  setpoint = setpoint,
+  banda_lower = reg$banda["lower"],
+  banda_upper = reg$banda["upper"],
+  lim_inf = min(T_all),
+  lim_sup = max(T_all)
+)
+
+tabla
+
+```
+
+
+```{r}
+# Ordena por temperatura
+tabla <- tabla[order(tabla$lim_inf), ]
+
+# Vector de porcentajes
+vals <- tabla$pct
+names(vals) <- tabla$intervalo
+
+# Barra apilada (1 barra) con % por rango
+bp <- barplot(matrix(vals, ncol = 1),
+              beside = FALSE,
+              col = seq_along(vals),   # colores automáticos
+              border = "white",
+              ylim = c(0, 100),
+              ylab = "Porcentaje (%)",
+              main = "Porcentaje por rango de temperatura",
+              names.arg = "")
+
+grid()
+
+# Etiquetas: muestra el % dentro de cada bloque
+y_bottom <- c(0, cumsum(vals)[-length(vals)])
+y_mid <- y_bottom + vals/2
+
+text(x = bp[1], y = y_mid,
+     labels = sprintf("%.2f%%", vals),
+     cex = 0.9)
+
+# Leyenda con los rangos
+legend("topright", legend = names(vals), fill = seq_along(vals), bty = "n")
+
+```
+```{r}
+# Ordena por temperatura
+tabla <- tabla[order(tabla$lim_inf), ]
+
+# Porcentajes por rango
+vals <- tabla$pct
+names(vals) <- tabla$intervalo
+
+# Barra apilada horizontal
+bp <- barplot(matrix(vals, ncol = 1),
+              beside = FALSE,
+              horiz = TRUE,
+              col = seq_along(vals),
+              border = "white",
+              xlim = c(0, 100),
+              xlab = "Porcentaje (%)",
+              main = "Porcentaje por rango de temperatura",
+              names.arg = "")
+
+grid()
+
+# Posiciones para las etiquetas (%)
+x_left <- c(0, cumsum(vals)[-length(vals)])
+x_mid  <- x_left + vals / 2
+
+text(x = x_mid, y = bp[1],
+     labels = sprintf("%.2f%%", vals),
+     cex = 0.9)
+
+# Leyenda con los rangos
+legend("topright",
+       legend = names(vals),
+       fill = seq_along(vals),
+       bty = "n")
+
+```
+```{r}
+# Ordena por temperatura
+tabla <- tabla[order(tabla$lim_inf), ]
+
+# Porcentajes
+vals <- tabla$pct
+names(vals) <- tabla$intervalo
+
+# --- Colores según relación con el setpoint ---
+colores <- ifelse(tabla$contiene_setpoint | tabla$esta_en_banda,
+                  "lightblue",        # cerca del setpoint
+                  ifelse(tabla$lim_sup < setpoint,
+                         "steelblue",  # más negativos
+                         "firebrick")) # más positivos
+
+# Barra apilada horizontal
+bp <- barplot(matrix(vals, ncol = 1),
+              beside = FALSE,
+              horiz = TRUE,
+              col = colores,
+              border = "white",
+              xlim = c(0, 100),
+              xlab = "Porcentaje (%)",
+              main = "Distribución de temperatura respecto al setpoint",
+              names.arg = "")
+
+grid()
+
+# Etiquetas (%)
+x_left <- c(0, cumsum(vals)[-length(vals)])
+x_mid  <- x_left + vals / 2
+
+text(x = x_mid, y = bp[1],
+     labels = sprintf("%.2f%%", vals),
+     cex = 0.9)
+
+# Leyenda
+legend("topright",
+       legend = c("Cerca del setpoint",
+                  "Más negativo",
+                  "Más positivo"),
+       fill = c("lightblue", "steelblue", "firebrick"),
+       bty = "n")
+
+```
+```{r}
+# Ordena por temperatura
+tabla <- tabla[order(tabla$lim_inf), ]
+
+# Porcentajes
+vals <- tabla$pct
+names(vals) <- tabla$intervalo
+
+# Centro de cada rango
+tabla$mid <- (tabla$lim_inf + tabla$lim_sup) / 2
+
+# Distancia al setpoint (firmada)
+d <- tabla$mid - setpoint
+
+# Normaliza a [-1, 1]
+d_norm <- d / max(abs(d))
+
+# Paleta azul → celeste → rojo
+pal <- colorRampPalette(c("steelblue", "lightblue", "firebrick"))
+
+# Convierte distancia a colores
+# (reescala de [-1,1] a [1,100])
+cols <- pal(100)[ round( (d_norm + 1) / 2 * 99 ) + 1 ]
+
+# --- Barra apilada horizontal ---
+bp <- barplot(matrix(vals, ncol = 1),
+              beside = FALSE,
+              horiz = TRUE,
+              col = cols,
+              border = "white",
+              xlim = c(0, 100),
+              xlab = "Porcentaje (%)",
+              main = "Distribución de temperatura (degradé respecto al setpoint)",
+              names.arg = "")
+
+grid()
+
+# Etiquetas de %
+x_left <- c(0, cumsum(vals)[-length(vals)])
+x_mid  <- x_left + vals / 2
+
+text(x = x_mid, y = bp[1],
+     labels = sprintf("%.2f%%", vals),
+     cex = 0.9)
+
+# Leyenda manual (conceptual)
+legend("topright",
+       legend = c("Más negativo", "Cerca del setpoint", "Más positivo"),
+       fill = c("steelblue", "lightblue", "firebrick"),
+       bty = "n")
+
+```
+
+```{r}
+# Ordena por temperatura
+tabla <- tabla[order(tabla$lim_inf), ]
+
+# Porcentajes por rango
+vals <- tabla$pct
+
+# Posiciones de intersección (en %)
+x_breaks <- c(0, cumsum(vals))  # largo = nrow(tabla)+1
+
+# Labels: límites de temperatura (cortes)
+temp_labels <- c(tabla$lim_inf[1], tabla$lim_sup)
+temp_labels <- formatC(temp_labels, format = "f", digits = 3)
+
+# Barra apilada horizontal SIN eje X automático
+bp <- barplot(matrix(vals, ncol = 1),
+              beside = FALSE,
+              horiz = TRUE,
+              col = seq_along(vals),
+              border = "white",
+              xlim = c(0, 100),
+              xlab = "",
+              main = "Porcentaje por rango de temperatura",
+              names.arg = "",
+              xaxt = "n")
+
+grid()
+
+# Eje X manual: solo límites + intersecciones
+axis(1, at = x_breaks, labels = temp_labels, las = 2)
+
+# (Opcional) líneas verticales finas en las intersecciones
+abline(v = x_breaks, col = "gray80", lty = 3)
+
+# Etiquetas de % dentro de cada bloque
+x_left <- x_breaks[-length(x_breaks)]
+x_mid  <- x_left + vals/2
+
+text(x = x_mid, y = bp[1],
+     labels = sprintf("%.2f%%", vals),
+     cex = 0.9)
+
+# Leyenda con los rangos (opcional, puedes quitarla si ya no la necesitas)
+legend("topright",
+       legend = tabla$intervalo,
+       fill = seq_along(vals),
+       bty = "n")
+
+```
+```{r}
+# Ordena por temperatura
+tabla <- tabla[order(tabla$lim_inf), ]
+
+# Porcentajes por rango
+vals <- tabla$pct
+
+# Posiciones de intersección (en %)
+x_breaks <- c(0, cumsum(vals))   # n+1 puntos
+
+# Labels: límites de temperatura (1 decimal)
+temp_labels <- c(tabla$lim_inf[1], tabla$lim_sup)
+temp_labels <- formatC(temp_labels, format = "f", digits = 1)
+
+# Barra apilada horizontal sin eje X automático
+bp <- barplot(matrix(vals, ncol = 1),
+              beside = FALSE,
+              horiz = TRUE,
+              col = seq_along(vals),
+              border = "white",
+              xlim = c(0, 100),
+              xlab = "",
+              main = "Porcentaje por rango de temperatura",
+              names.arg = "",
+              xaxt = "n")
+
+grid()
+
+# Eje X manual: solo cortes, texto horizontal
+axis(1, at = x_breaks, labels = temp_labels, las = 1)
+
+# Líneas finas en intersecciones
+abline(v = x_breaks, col = "gray80", lty = 3)
+
+# Etiquetas de porcentaje dentro de cada bloque
+x_left <- x_breaks[-length(x_breaks)]
+x_mid  <- x_left + vals / 2
+
+text(x = x_mid, y = bp[1],
+     labels = sprintf("%.1f%%", vals),
+     cex = 0.9)
+
+# Leyenda (opcional)
+legend("topright",
+       legend = tabla$intervalo,
+       fill = seq_along(vals),
+       bty = "n")
+
+```
+```{r}
+# Ordena por temperatura
+tabla <- tabla[order(tabla$lim_inf), ]
+
+# Porcentajes por rango
+vals <- tabla$pct
+
+# Posiciones de intersección (en %)
+x_breaks <- c(0, cumsum(vals))
+
+# Labels del eje: solo límites (1 decimal)
+temp_labels <- c(tabla$lim_inf[1], tabla$lim_sup)
+temp_labels <- formatC(temp_labels, format = "f", digits = 1)
+
+# Barra apilada horizontal
+bp <- barplot(matrix(vals, ncol = 1),
+              beside = FALSE,
+              horiz = TRUE,
+              col = seq_along(vals),
+              border = "white",
+              xlim = c(0, 100),
+              xlab = "",
+              main = "Porcentaje por rango de temperatura",
+              names.arg = "",
+              xaxt = "n")
+
+grid()
+
+# Eje X manual (cortes)
+axis(1, at = x_breaks, labels = temp_labels, las = 1)
+
+# Líneas de intersección
+abline(v = x_breaks, col = "gray80", lty = 3)
+
+# Centro de cada bloque
+x_left <- x_breaks[-length(x_breaks)]
+x_mid  <- x_left + vals / 2
+
+# Texto dentro de cada bloque:
+# 1) porcentaje
+# 2) rango (en línea inferior)
+text(x = x_mid, y = bp[1] + 0.05,
+     labels = sprintf("%.1f%%", vals),
+     cex = 0.9)
+
+
+```
+```{r}
+# Ordena por temperatura
+tabla <- tabla[order(tabla$lim_inf), ]
+
+# Porcentajes por rango
+vals <- tabla$pct
+
+# Posiciones de intersección (en %)
+x_breaks <- c(0, cumsum(vals))
+
+# Labels del eje: solo límites (1 decimal)
+temp_labels <- c(tabla$lim_inf[1], tabla$lim_sup)
+temp_labels <- formatC(temp_labels, format = "f", digits = 1)
+
+# -----------------------------
+# COLORES: Azul | (Azul→Celeste) | (Celeste→Naranja) | Rojo
+# -----------------------------
+nseg <- length(vals)
+
+# índice del bloque que contiene setpoint (si no existe, usa el más cercano por mid)
+i0 <- which(tabla$contiene_setpoint)[1]
+if (is.na(i0)) {
+  mid <- (tabla$lim_inf + tabla$lim_sup) / 2
+  i0 <- which.min(abs(mid - setpoint))
+}
+
+cols <- character(nseg)
+
+# 1) Primer bloque: azul fijo
+cols[1] <- "steelblue"
+
+# 4) Último bloque: rojo fijo
+cols[nseg] <- "red"
+
+# 2) Degradé azul -> celeste (desde bloque 2 hasta i0-1)
+if (nseg >= 2 && (i0 - 1) >= 2) {
+  idx1 <- 2:(i0 - 1)
+  cols[idx1] <- colorRampPalette(c("steelblue", "lightblue"))(length(idx1))
+}
+
+# 3) Degradé celeste -> naranja (desde i0 hasta nseg-1)
+if (i0 <= (nseg - 1)) {
+  idx2 <- i0:(nseg - 1)
+  cols[idx2] <- colorRampPalette(c("lightblue", "orange"))(length(idx2))
+}
+
+# Caso borde: si i0 == 1 o i0 == nseg, asegúrate de que no quede vacío
+if (i0 == 1 && nseg >= 2) cols[2:(nseg - 1)] <- colorRampPalette(c("lightblue", "orange"))(max(nseg - 2, 1))
+if (i0 == nseg && nseg >= 2) cols[2:(nseg - 1)] <- colorRampPalette(c("steelblue", "lightblue"))(max(nseg - 2, 1))
+
+# -----------------------------
+# Barra apilada horizontal
+# -----------------------------
+bp <- barplot(matrix(vals, ncol = 1),
+              beside = FALSE,
+              horiz = TRUE,
+              col = cols,
+              border = "white",
+              xlim = c(0, 100),
+              xlab = "",
+              main = "Porcentaje por rango de temperatura",
+              names.arg = "",
+              xaxt = "n")
+
+grid()
+
+# Eje X manual (cortes)
+axis(1, at = x_breaks, labels = temp_labels, las = 1)
+
+# Líneas de intersección
+abline(v = x_breaks, col = "gray80", lty = 3)
+
+# Centro de cada bloque
+x_left <- x_breaks[-length(x_breaks)]
+x_mid  <- x_left + vals / 2
+
+# Etiquetas (%)
+text(x = x_mid, y = bp[1] + 0.05,
+     labels = sprintf("%.1f%%", vals),
+     cex = 0.9)
+
+```
+
+```{r}
+# Ordena por temperatura
+tabla <- tabla[order(tabla$lim_inf), ]
+
+# Porcentajes por rango
+vals <- tabla$pct
+nseg <- length(vals)
+
+# Posiciones de intersección (en %)
+x_breaks <- c(0, cumsum(vals))
+
+# Labels del eje: solo límites (1 decimal)
+temp_labels <- c(tabla$lim_inf[1], tabla$lim_sup)
+temp_labels <- formatC(temp_labels, format = "f", digits = 1)
+
+# ---- helper: dibuja un bloque con degradé (muchas tiritas) ----
+draw_grad_block <- function(x0, x1, y0, y1, col_start, col_end, steps = 80) {
+  xs <- seq(x0, x1, length.out = steps + 1)
+  cols <- colorRampPalette(c(col_start, col_end))(steps)
+  for (k in seq_len(steps)) {
+    rect(xs[k], y0, xs[k+1], y1, col = cols[k], border = NA)
+  }
+}
+
+# ---- Lienzo vacío ----
+par(mar = c(5, 4, 4, 2))
+plot(NA,
+     xlim = c(0, 100),
+     ylim = c(0.5, 1.5),
+     xlab = "",
+     ylab = "",
+     yaxt = "n",
+     xaxt = "n",
+     main = "Porcentaje por rango de temperatura")
+
+grid()
+
+# ---- Dibuja los 4 bloques (o n bloques, usando la misma lógica) ----
+y0 <- 0.85
+y1 <- 1.15
+
+for (i in seq_len(nseg)) {
+  x0 <- x_breaks[i]
+  x1 <- x_breaks[i + 1]
+
+  # Define colores por tramo (asumiendo 4 rangos como en tu tabla)
+  if (i == 1) {
+    # 1) azul sólido
+    rect(x0, y0, x1, y1, col = "steelblue", border = "white")
+  } else if (i == nseg) {
+    # 4) rojo sólido
+    rect(x0, y0, x1, y1, col = "red", border = "white")
+  } else if (i == 2) {
+    # 2) degradé azul -> celeste
+    draw_grad_block(x0, x1, y0, y1, "steelblue", "lightblue", steps = 120)
+    rect(x0, y0, x1, y1, border = "white")  # borde
+  } else {
+    # 3) degradé celeste -> naranja (para i==3 en tu caso)
+    draw_grad_block(x0, x1, y0, y1, "lightblue", "orange", steps = 120)
+    rect(x0, y0, x1, y1, border = "white")
+  }
+}
+
+# ---- Eje X manual (cortes) + líneas de intersección ----
+axis(1, at = x_breaks, labels = temp_labels, las = 1)
+abline(v = x_breaks, col = "gray80", lty = 3)
+
+# ---- Etiquetas de % centradas en cada bloque ----
+x_mid <- x_breaks[-length(x_breaks)] + vals / 2
+text(x = x_mid, y = 1.22,
+     labels = sprintf("%.1f%%", vals),
+     cex = 0.9)
+
+```
+```{r}
+# Ordena por temperatura
+tabla <- tabla[order(tabla$lim_inf), ]
+
+# Porcentajes por rango
+vals <- tabla$pct
+nseg <- length(vals)
+
+# Posiciones de intersección (en %)
+x_breaks <- c(0, cumsum(vals))
+
+# Labels del eje: solo límites (1 decimal)
+temp_labels <- c(tabla$lim_inf[1], tabla$lim_sup)
+temp_labels <- formatC(temp_labels, format = "f", digits = 1)
+
+# ---- helper: dibuja un bloque con degradé (muchas tiritas) ----
+draw_grad_block <- function(x0, x1, y0, y1, col_start, col_end, steps = 120) {
+  xs <- seq(x0, x1, length.out = steps + 1)
+  cols <- colorRampPalette(c(col_start, col_end))(steps)
+  for (k in seq_len(steps)) {
+    rect(xs[k], y0, xs[k+1], y1, col = cols[k], border = NA)
+  }
+}
+
+# ---- Lienzo ----
+par(mar = c(5, 4, 4, 2))
+plot(NA,
+     xlim = c(0, 100),
+     ylim = c(0.5, 1.5),
+     xlab = "",
+     ylab = "",
+     yaxt = "n",
+     xaxt = "n",
+     main = "Porcentaje por rango de temperatura")
+
+grid()
+
+# Altura de la barra
+y0 <- 0.85
+y1 <- 1.15
+
+# ---- Dibuja bloques ----
+for (i in seq_len(nseg)) {
+  x0 <- x_breaks[i]
+  x1 <- x_breaks[i + 1]
+
+  if (i == 1) {
+    # 1) degradé azul -> azul más fuerte
+    draw_grad_block(x0, x1, y0, y1, col_start = "blue", col_end = "steelblue", steps = 140)
+    rect(x0, y0, x1, y1, border = "white")
+
+  } else if (i == 2) {
+    # 2) degradé azul -> celeste
+    draw_grad_block(x0, x1, y0, y1, col_start = "steelblue", col_end = "lightblue", steps = 140)
+    rect(x0, y0, x1, y1, border = "white")
+
+  } else if (i == (nseg - 1)) {
+    # 3) degradé celeste -> naranja
+    draw_grad_block(x0, x1, y0, y1, col_start = "lightblue", col_end = "orange", steps = 140)
+    rect(x0, y0, x1, y1, border = "white")
+
+  } else if (i == nseg) {
+    # 4) degradé naranja -> rojo
+    draw_grad_block(x0, x1, y0, y1, col_start = "orange", col_end = "red", steps = 140)
+    rect(x0, y0, x1, y1, border = "white")
+
+  } else {
+    # Si algún día hay más bloques intermedios, usa celeste (fallback)
+    rect(x0, y0, x1, y1, col = "lightblue", border = "white")
+  }
+}
+
+# ---- Eje X manual (cortes) + líneas de intersección ----
+axis(1, at = x_breaks, labels = temp_labels, las = 1)
+abline(v = x_breaks, col = "gray80", lty = 3)
+
+# ---- Etiquetas de % centradas en cada bloque ----
+x_mid <- x_breaks[-length(x_breaks)] + vals / 2
+text(x = x_mid, y = 1.22,
+     labels = sprintf("%.1f%%", vals),
+     cex = 0.9)
+
+```
+
+```{r}
+# Construye una función T -> color usando los cortes de 'tabla'
+make_temp_colormap <- function(tabla) {
+
+  # Cortes (N rangos => N+1 cortes)
+  breaks <- c(tabla$lim_inf[1], tabla$lim_sup)
+
+  # Colores ancla en cada corte (azul fuerte -> azul -> celeste -> naranja -> rojo)
+  # Ajusta si quieres tonos más intensos (navy, deepskyblue, darkorange, firebrick, etc.)
+  anchor_cols <- c("navy", "steelblue", "lightblue", "orange", "red")
+
+  # Si por alguna razón no calzan longitudes, adapta
+  if (length(anchor_cols) != length(breaks)) {
+    anchor_cols <- colorRampPalette(anchor_cols)(length(breaks))
+  }
+
+  # Devuelve función que interpola color dentro del segmento
+  function(T) {
+    T <- as.numeric(T)
+
+    # clamp a rango de breaks
+    T2 <- pmin(pmax(T, breaks[1]), breaks[length(breaks)])
+
+    # índice de segmento
+    j <- findInterval(T2, vec = breaks, rightmost.closed = TRUE, all.inside = TRUE)
+    j <- pmin(j, length(breaks) - 1)  # seguridad
+
+    # fracción dentro del segmento
+    b0 <- breaks[j]
+    b1 <- breaks[j + 1]
+    frac <- ifelse(b1 > b0, (T2 - b0) / (b1 - b0), 0)
+
+    # interpola color entre anclas j y j+1
+    c0 <- col2rgb(anchor_cols[j]) / 255
+    c1 <- col2rgb(anchor_cols[j + 1]) / 255
+    rgb_mix <- c0 * (1 - frac) + c1 * frac
+
+    rgb(rgb_mix[1,], rgb_mix[2,], rgb_mix[3,])
+  }
+}
+
+
+t <- v2$t
+T <- v2$T
+
+# Función de color basada en los rangos/límites que ya usaste
+col_T <- make_temp_colormap(tabla)
+
+# Colores por instante
+cols <- col_T(T)
+
+# Lienzo
+par(mar = c(5, 4, 4, 2))
+plot(NA,
+     xlim = range(t),
+     ylim = c(0.8, 1.2),
+     xlab = "Tiempo [min]",
+     ylab = "",
+     yaxt = "n",
+     main = "Barra temporal de temperatura (colores por rangos)")
+grid()
+
+# Dibuja rectángulos por intervalos de tiempo
+# (usamos T[i] para el tramo [t[i], t[i+1]])
+for (i in 1:(length(t) - 1)) {
+  rect(xleft = t[i],  ybottom = 0.85,
+       xright = t[i+1], ytop = 1.15,
+       col = cols[i], border = NA)
+}
+
+# Opcional: marca el inicio de estable si quieres
+if (!is.null(reg$t_estable_inicio) && is.finite(reg$t_estable_inicio)) {
+  abline(v = reg$t_estable_inicio, lty = 2, lwd = 2)
+}
+
+# (Opcional) agrega cortes de temperatura como mini leyenda (texto)
+mtext(paste0("Cortes T: ", paste(formatC(c(tabla$lim_inf[1], tabla$lim_sup), digits=1, format="f"), collapse=" | ")),
+      side = 3, line = 0.2, cex = 0.8)
+
+
+# Dibuja líneas finas cuando cambia de rango (cambio de bloque)
+breaks_T <- c(tabla$lim_inf[1], tabla$lim_sup)
+idx_bin <- findInterval(T, breaks_T, rightmost.closed = TRUE, all.inside = TRUE)
+
+cambios <- which(diff(idx_bin) != 0)
+abline(v = t[cambios + 1], col = "gray70", lty = 3)
+
+```
+
+```{r}
+t <- v2$t
+T <- v2$T
+
+# 1) Suavizado temporal (media móvil)
+k <- 11  # ventana (impar). Prueba 7, 11, 21 según qué tan suave lo quieras
+T_suave <- stats::filter(T, rep(1/k, k), sides = 2)
+
+# Rellena bordes (filter mete NAs al inicio/fin)
+T_suave[is.na(T_suave)] <- T[is.na(T_suave)]
+
+# 2) Interpolación para mayor resolución (más “pasos” en el tiempo)
+factor_res <- 10  # 10x más puntos. Prueba 5 o 20
+t_fino <- seq(min(t), max(t), length.out = (length(t)-1)*factor_res + 1)
+
+T_fino <- approx(t, T_suave, xout = t_fino, method = "linear", rule = 2)$y
+
+# Función de color basada en 'tabla' (la misma idea que ya tienes)
+col_T <- make_temp_colormap(tabla)
+
+cols_fino <- col_T(T_fino)
+
+# --- Lienzo ---
+par(mar = c(5, 4, 4, 2))
+plot(NA,
+     xlim = range(t_fino),
+     ylim = c(0.8, 1.2),
+     xlab = "Tiempo [min]",
+     ylab = "",
+     yaxt = "n",
+     main = "Barra temporal de temperatura (transiciones suaves)")
+grid()
+
+# Dibuja la barra en alta resolución
+for (i in 1:(length(t_fino) - 1)) {
+  rect(xleft = t_fino[i],  ybottom = 0.85,
+       xright = t_fino[i+1], ytop = 1.15,
+       col = cols_fino[i], border = NA)
+}
+
+# (Opcional) marca inicio de estable
+if (!is.null(reg$t_estable_inicio) && is.finite(reg$t_estable_inicio)) {
+  abline(v = reg$t_estable_inicio, lty = 2, lwd = 2)
+}
+
+```
+
+```{r}
+## =========================
+##  Barra temporal con degradé SUAVE por rangos (sin “rayitas”)
+##  - Suaviza T (media móvil o exponencial)
+##  - Interpola en el tiempo (más resolución)
+##  - Mapea T->color con degradé por rangos (azul fuerte -> azul -> celeste -> naranja -> rojo)
+##  - Cuantiza color (reduce microvariaciones)
+##  - Agrupa tramos de color igual (dibuja rectángulos largos y limpios)
+## =========================
+
+## ---- 1) Colormap por rangos de temperatura (degradé por cortes) ----
+make_temp_colormap <- function(tabla,
+                               anchor_cols = c("navy", "steelblue", "lightblue", "orange", "red")) {
+
+  # cortes: N rangos => N+1 cortes
+  breaks <- c(tabla$lim_inf[1], tabla$lim_sup)
+
+  # ajusta cantidad de colores ancla si no coincide con cortes
+  if (length(anchor_cols) != length(breaks)) {
+    anchor_cols <- colorRampPalette(anchor_cols)(length(breaks))
+  }
+
+  function(T) {
+    T <- as.numeric(T)
+
+    # clamp al rango
+    T2 <- pmin(pmax(T, breaks[1]), breaks[length(breaks)])
+
+    # segmento
+    j <- findInterval(T2, vec = breaks, rightmost.closed = TRUE, all.inside = TRUE)
+    j <- pmin(j, length(breaks) - 1)
+
+    b0 <- breaks[j]
+    b1 <- breaks[j + 1]
+    frac <- ifelse(b1 > b0, (T2 - b0) / (b1 - b0), 0)
+
+    c0 <- col2rgb(anchor_cols[j]) / 255
+    c1 <- col2rgb(anchor_cols[j + 1]) / 255
+    rgb_mix <- c0 * (1 - frac) + c1 * frac
+
+    rgb(rgb_mix[1,], rgb_mix[2,], rgb_mix[3,])
+  }
+}
+
+## ---- 2) Cuantizar colores (para evitar bandas/ruido cromático) ----
+quantize_color <- function(cols, n = 128) {
+  rgbm <- col2rgb(cols)
+  q <- round(rgbm / 255 * (n - 1))
+  rgb(q[1,] / (n - 1),
+      q[2,] / (n - 1),
+      q[3,] / (n - 1))
+}
+
+## ---- 3) Suavizado de señal: (A) Media móvil o (B) Exponencial ----
+smooth_moving_average <- function(T, k = 11) {
+  k <- as.integer(k)
+  if (k < 1) return(T)
+  if (k %% 2 == 0) k <- k + 1  # impar
+  Ts <- stats::filter(T, rep(1/k, k), sides = 2)
+  Ts[is.na(Ts)] <- T[is.na(Ts)]
+  as.numeric(Ts)
+}
+
+smooth_exponential <- function(T, alpha = 0.05) {
+  alpha <- max(min(alpha, 1), 0)
+  Ts <- numeric(length(T))
+  Ts[1] <- T[1]
+  for (i in 2:length(T)) {
+    Ts[i] <- alpha * T[i] + (1 - alpha) * Ts[i - 1]
+  }
+  Ts
+}
+
+## ---- 4) Plot principal: barra temporal suave ----
+plot_time_colorbar <- function(t, T, tabla,
+                               setpoint = NULL,
+                               t_estable = NULL,
+                               # suavizado
+                               method = c("moving", "exp"),
+                               k = 11, alpha = 0.05,
+                               # interpolación
+                               factor_res = 10,
+                               # control visual
+                               quant_levels = 128,
+                               # colores ancla (azul fuerte -> ... -> rojo)
+                               anchor_cols = c("navy", "steelblue", "lightblue", "orange", "red"),
+                               main = "Barra temporal de temperatura (transiciones suaves)") {
+
+  method <- match.arg(method)
+
+  # 1) suaviza T
+  if (method == "moving") {
+    T_suave <- smooth_moving_average(T, k = k)
+  } else {
+    T_suave <- smooth_exponential(T, alpha = alpha)
+  }
+
+  # 2) interpola (más resolución temporal)
+  t_fino <- seq(min(t), max(t), length.out = (length(t) - 1) * factor_res + 1)
+  T_fino <- approx(t, T_suave, xout = t_fino, method = "linear", rule = 2)$y
+
+  # 3) mapea T->color con degradé por rangos
+  col_T <- make_temp_colormap(tabla, anchor_cols = anchor_cols)
+  cols_fino <- col_T(T_fino)
+
+  # 4) cuantiza colores (reduce microvariaciones)
+  cols_q <- quantize_color(cols_fino, n = quant_levels)
+
+  # 5) agrupa tramos con mismo color (dibuja rectángulos largos)
+  change_idx <- c(1,
+                  which(cols_q[-1] != cols_q[-length(cols_q)]) + 1,
+                  length(cols_q) + 1)
+
+  # ---- plot ----
+  par(mar = c(5, 4, 4, 2))
+  plot(NA,
+       xlim = range(t_fino),
+       ylim = c(0.8, 1.2),
+       xlab = "Tiempo [min]",
+       ylab = "",
+       yaxt = "n",
+       main = main)
+
+  grid()
+
+  y0 <- 0.85; y1 <- 1.15
+
+  for (kseg in seq_len(length(change_idx) - 1)) {
+    i0 <- change_idx[kseg]
+    i1 <- change_idx[kseg + 1] - 1
+
+    rect(xleft  = t_fino[i0],
+         xright = t_fino[i1],
+         ybottom = y0,
+         ytop    = y1,
+         col = cols_q[i0],
+         border = NA)
+  }
+
+  # Opcional: marca t_estable
+  if (!is.null(t_estable) && is.finite(t_estable)) {
+    abline(v = t_estable, lty = 2, lwd = 2)
+  }
+
+  # Opcional: texto con cortes de temperatura (1 decimal)
+  cuts <- formatC(c(tabla$lim_inf[1], tabla$lim_sup), format = "f", digits = 1)
+  mtext(paste0("Cortes T: ", paste(cuts, collapse = " | ")),
+        side = 3, line = 0.2, cex = 0.8)
+
+  invisible(list(t_fino = t_fino, T_fino = T_fino, cols = cols_q))
+}
+
+## =========================
+## USO (con tus objetos)
+## =========================
+# t <- v2$t
+# T <- v2$T
+# tabla <- tabla  # ya construida con tabla_densidad_por_bandas(...)
+# setpoint <- -0.1
+
+# Opción A: media móvil (suave)
+plot_time_colorbar(t = v2$t, T = v2$T, tabla = tabla,
+                   setpoint = setpoint,
+                   t_estable = reg$t_estable_inicio,
+                   method = "moving",
+                   k = 11,
+                   factor_res = 10,
+                   quant_levels = 128,
+                   anchor_cols = c("navy","steelblue","lightblue","orange","red"),
+                   main = "Barra temporal de temperatura (suave, sin rayas)")
+
+# Opción B: exponencial (aún más “física”)
+# plot_time_colorbar(t = v2$t, T = v2$T, tabla = tabla,
+#                    setpoint = setpoint,
+#                    t_estable = reg$t_estable_inicio,
+#                    method = "exp",
+#                    alpha = 0.05,
+#                    factor_res = 10,
+#                    quant_levels = 128,
+#                    anchor_cols = c("navy","steelblue","lightblue","orange","red"),
+#                    main = "Barra temporal de temperatura (exp, sin rayas)")
+
+```
+
+```{r}
+## =========================
+## Barra temporal por BLOQUES (colores rígidos por rango)
+## =========================
+
+plot_time_blocks_by_range <- function(t, T, tabla,
+                                      t_estable = NULL,
+                                      # colores por rango (uno por fila de tabla)
+                                      range_cols = NULL,
+                                      main = "Barra temporal (bloques por rango)",
+                                      show_cut_labels = TRUE) {
+
+  # Ordena tabla por temperatura
+  tabla <- tabla[order(tabla$lim_inf), ]
+
+  # Cortes de temperatura (N rangos => N+1 cortes)
+  breaks_T <- c(tabla$lim_inf[1], tabla$lim_sup)
+
+  # Colores por rango (uno por intervalo de tabla)
+  if (is.null(range_cols)) {
+    # default: azul -> celeste -> naranja -> rojo (según cantidad de rangos)
+    range_cols <- c("steelblue", "lightblue", "orange", "red")
+    if (length(range_cols) != nrow(tabla)) {
+      range_cols <- colorRampPalette(range_cols)(nrow(tabla))
+    }
+  } else {
+    stopifnot(length(range_cols) == nrow(tabla))
+  }
+
+  # Asigna cada muestra al bin/rango
+  # findInterval devuelve 1..length(breaks_T)-1
+  bin <- findInterval(T, breaks_T, rightmost.closed = TRUE, all.inside = TRUE)
+  bin <- pmin(pmax(bin, 1), length(breaks_T) - 1)
+
+  cols <- range_cols[bin]
+
+  # Para evitar “rayas”: agrupa tramos consecutivos del mismo color
+  change_idx <- c(1, which(cols[-1] != cols[-length(cols)]) + 1, length(cols) + 1)
+
+  # Lienzo
+  par(mar = c(5, 4, 4, 2))
+  plot(NA,
+       xlim = range(t),
+       ylim = c(0.8, 1.2),
+       xlab = "Tiempo [min]",
+       ylab = "",
+       yaxt = "n",
+       main = main)
+  grid()
+
+  y0 <- 0.85; y1 <- 1.15
+
+  # Dibuja rectángulos por tramo de color constante
+  for (k in seq_len(length(change_idx) - 1)) {
+    i0 <- change_idx[k]
+    i1 <- change_idx[k + 1] - 1
+
+    # tramo temporal [t[i0], t[i1+1]] si existe t[i1+1]
+    x0 <- t[i0]
+    x1 <- if (i1 < length(t)) t[i1 + 1] else t[i1]
+
+    rect(xleft = x0, xright = x1, ybottom = y0, ytop = y1,
+         col = cols[i0], border = NA)
+  }
+
+  # Marca inicio de estable si quieres
+  if (!is.null(t_estable) && is.finite(t_estable)) {
+    abline(v = t_estable, lty = 2, lwd = 2)
+  }
+
+  # (Opcional) mostrar cortes de temperatura arriba
+  if (isTRUE(show_cut_labels)) {
+    cuts <- formatC(breaks_T, format = "f", digits = 1)
+    mtext(paste0("Cortes T: ", paste(cuts, collapse = " | ")),
+          side = 3, line = 0.2, cex = 0.8)
+  }
+
+  # Leyenda por rango (usa el texto intervalo de tu tabla)
+  legend("topright",
+         legend = tabla$intervalo,
+         fill = range_cols,
+         bty = "n", cex = 0.85)
+
+  invisible(list(bin = bin, cols = cols, breaks_T = breaks_T))
+}
+
+## =========================
+## USO (con tus objetos)
+## =========================
+plot_time_blocks_by_range(t = v2$t,
+                          T = v2$T,
+                          tabla = tabla,
+                          t_estable = reg$t_estable_inicio,
+                          range_cols = c("steelblue", "lightblue", "orange", "red"),
+                          main = "Barra temporal por rangos (colores rígidos)")
+
+```
+
+
