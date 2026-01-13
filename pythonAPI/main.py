@@ -102,25 +102,110 @@ async def catalog(name: str):
 async def get_temporadas():
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
-        rows = await fetchall(db, "SELECT DISTINCT temporada_anio FROM procesos ORDER BY temporada_anio DESC")
-        return [r["temporada_anio"] for r in rows]
+        rows = await fetchall(
+            db,
+            """
+            SELECT DISTINCT temporada_anio
+            FROM procesos
+            WHERE temporada_anio IS NOT NULL
+            ORDER BY temporada_anio DESC
+            """
+        )
+        return [{
+            "id": r["temporada_anio"],
+            "name": r["temporada_anio"]
+        } for r in rows]
+
+
+@app.get("/packings")
+async def get_packings():
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        rows = await fetchall(db, "SELECT * FROM packings ORDER BY nombre ASC")
+        return [{
+            "id": r["packing_id"],
+            "name": r["nombre"]
+        } for r in rows]
+
+
+@app.get("/variedad")
+async def get_epocas(
+    temporada_anio: Optional[int] = Query(None),
+    packing_id: Optional[int] = Query(None),
+    tunel_id: Optional[int] = Query(None),
+):
+    filters = ["epoca IS NOT NULL"]
+    params = []
+
+    if temporada_anio is not None:
+        filters.append("temporada_anio = ?")
+        params.append(temporada_anio)
+
+    if packing_id is not None:
+        filters.append("packing_id = ?")
+        params.append(packing_id)
+
+    if tunel_id is not None:
+        filters.append("tunel_id = ?")
+        params.append(tunel_id)
+
+    where_sql = " WHERE " + " AND ".join(filters)
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        rows = await fetchall(
+            db,
+            f"""
+            SELECT DISTINCT epoca
+            FROM procesos
+            {where_sql}
+            ORDER BY epoca ASC
+            """,
+            params
+        )
+        return [{
+                "id": r["epoca"],
+                "name": r["epoca"]
+            } for r in rows]
+
+
+from typing import Optional
+from fastapi import Query
 
 # -------------------------
-# Procesos (lista) - filtro simple por fechas
+# Procesos (lista) - filtros simples
 # -------------------------
 @app.get("/procesos")
 async def listar_procesos(
-    started_from: Optional[str] = None,  # "2025-05-01 00:00:00"
-    started_to: Optional[str] = None,    # "2025-05-31 23:59:59"
-    temporada_anio: Optional[int] = 2025,
+    # fechas
+    started_from: Optional[str] = None,   # "2025-05-01 00:00:00"
+    started_to: Optional[str] = None,     # "2025-05-31 23:59:59"
+
+    # filtros opcionales
+    temporada_anio: Optional[int] = None,
+    packing_id: Optional[int] = None,
+    epoca: Optional[str] = None,
+
+    # paginación
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ):
-    def col_exists(c): return c in PROCESOS_COLS
+    def col_exists(c): 
+        return c in PROCESOS_COLS
 
     filters = []
+
+    # temporada
     if temporada_anio is not None and col_exists("temporada_anio"):
         filters.append(("temporada_anio", "=", temporada_anio))
+
+    # packing
+    if packing_id is not None and col_exists("packing_id"):
+        filters.append(("packing_id", "=", packing_id))
+
+    # epoca (variada)
+    if epoca and col_exists("epoca"):
+        filters.append(("epoca", "=", epoca))
 
     # fechas
     if started_from and col_exists("started_at"):
@@ -128,9 +213,11 @@ async def listar_procesos(
     if started_to and col_exists("started_at"):
         filters.append(("started_at", "<=", started_to))
 
+    # WHERE dinámico
     where_sql, params = build_where(filters)
 
-    cols_sql = ", ".join([f'"{c}"' for c in PROCESOS_COLS])  # comillas por T0, etc.
+    cols_sql = ", ".join([f'"{c}"' for c in PROCESOS_COLS])
+
     sql_items = f"""
         SELECT {cols_sql}
         FROM procesos
@@ -138,7 +225,12 @@ async def listar_procesos(
         ORDER BY proceso_id DESC
         LIMIT ? OFFSET ?
     """
-    sql_total = f"SELECT COUNT(*) as total FROM procesos {where_sql}"
+
+    sql_total = f"""
+        SELECT COUNT(*) as total
+        FROM procesos
+        {where_sql}
+    """
 
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
@@ -154,6 +246,7 @@ async def listar_procesos(
             "offset": offset,
             "items": [dict(r) for r in rows]
         }
+
 
 # -------------------------
 # Proceso (detalle metadata)
