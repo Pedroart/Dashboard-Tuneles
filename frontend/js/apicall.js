@@ -1,3 +1,14 @@
+const API_BASE = "http://127.0.0.1:8000";
+
+async function fetchJSON(url) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Error ${response.status}: ${response.statusText}`);
+  }
+  return await response.json();
+}
+
+
 async function getProcesos({
   started_from = null,
   started_to = null,
@@ -31,39 +42,29 @@ async function getProcesos({
   }
 }
 
-async function getTemporadas(){
-    const url = `http://127.0.0.1:8000/temporadas`;
-    try{
-        const response = await fetch(url)
-        if (!response.ok) {
-            throw new Error('Error en la solicitud');
-        }
-        const result = await response.json();
-        console.log(result);
-    }
-    catch (error) {
-        console.error('Error:', error);
-    }
-    return result;
-} 
-
-async function getpackings() {
-    const url = "http://127.0.0.1:8000/temporadas";
-
-    try {
-        const response = await fetch(url)
-        if (!response.ok){
-            throw new Error('Error de solicitud');
-        }
-
-        const result = await response.json();
-    }
-    catch (e) {
-        console.error('Error:', e);
-    }
-    return result;
-    
+async function getTemporadas() {
+  try {
+    const result = await fetchJSON(`${API_BASE}/temporadas`);
+    console.log("Temporadas:", result);
+    return result; // [2025, 2024, ...]
+  } catch (error) {
+    console.error("Error getTemporadas:", error);
+    return [];
+  }
 }
+
+
+async function getPackings() {
+  try {
+    const result = await fetchJSON(`${API_BASE}/packings`);
+    console.log("Packings:", result);
+    return result; // [{id, nombre}]
+  } catch (error) {
+    console.error("Error getPackings:", error);
+    return [];
+  }
+}
+
 
 async function getVariedades({
   temporada_anio = null,
