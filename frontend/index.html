@@ -174,6 +174,11 @@
           <div class="widget card">
             <canvas id="chartOcupabilidad"></canvas>
           </div>
+          <div style="display:flex; gap:16px; font-size:12px; color:rgba(255,255,255,.7); margin-top:8px;">
+            <div><span style="display:inline-block;width:10px;height:10px;background:#2196f3;border-radius:3px;margin-right:6px;"></span>Materia Prima</div>
+            <div><span style="display:inline-block;width:10px;height:10px;background:#4caf50;border-radius:3px;margin-right:6px;"></span>Producto Terminado</div>
+          </div>
+
         </div>
         <div class="widget card">Widget 6</div>
         <div class="widget card">Widget 7</div>
@@ -181,16 +186,22 @@
       </main>
     </div>
 
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <!-- Materialize JS (CDN) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
 
     <!--Api call python-->
     <script src="./js/apicall.js"></script>
+    <script src="./js/graficas.js"></script>
+
 
     <!-- Custom JS -->
     <script src="js/script.js"></script>
 
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
+    
   </body>
 </html>
