@@ -130,7 +130,12 @@ async function cargarDatos() {
     return;
   }
 
-  // aquí sigues con tu render
+  // Obtener series por tipo de caja y renderizar gráfica
+  const tiposCaja = await getSeriesPorTipoCaja(items);
+  renderChartEnfriamiento(tiposCaja);
+  
+  // Renderizar gráfica de tiempo por túnel
+  renderChartTiempoTunel(items);
 }
 
 
