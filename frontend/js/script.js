@@ -118,7 +118,7 @@ async function cargarDatos() {
     packing_id,
     temporada_anio,
     epoca,
-    limit: 50,
+    limit: 500,
     offset: 0,
   });
 
@@ -132,3 +132,5 @@ async function cargarDatos() {
 
   // aquí sigues con tu render
 }
+
+
