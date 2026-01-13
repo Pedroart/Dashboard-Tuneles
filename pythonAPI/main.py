@@ -98,6 +98,13 @@ async def catalog(name: str):
         rows = await fetchall(db, f"SELECT * FROM {name}")
         return [dict(r) for r in rows]
 
+@app.get("/temporadas")
+async def get_temporadas():
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        rows = await fetchall(db, "SELECT DISTINCT temporada_anio FROM procesos ORDER BY temporada_anio DESC")
+        return [r["temporada_anio"] for r in rows]
+
 # -------------------------
 # Procesos (lista) - filtro simple por fechas
 # -------------------------
