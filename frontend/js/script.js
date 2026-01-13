@@ -107,7 +107,7 @@ async function cargarDatos() {
 
   const packing_id = packingIdStr ? Number(packingIdStr) : null;
   const temporada_anio = temporadaStr ? Number(temporadaStr) : null;
-  const epoca = frutaStr || null; // epoca es string normalmente
+  const epoca = frutaStr || null;
 
   if (!temporada_anio) {
     M.toast({ html: "Seleccione al menos una temporada" });
@@ -130,5 +130,8 @@ async function cargarDatos() {
     return;
   }
 
-  // aquí sigues con tu render
+  // Renderizar gráfico con el primer proceso
+  if (items.length > 0 && items[0].proceso_id) {
+    renderChart(items[0].proceso_id);
+  }
 }

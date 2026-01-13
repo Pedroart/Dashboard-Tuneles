@@ -131,3 +131,19 @@ async function wraperGetProcesos({
   };
 }
 
+async function getSerie(procesoId, tMin = 0, tMax = null, step = 1) {
+  let url = `${API_BASE}/procesos/${procesoId}/serie?t_min=${tMin}&step=${step}`;
+  if (tMax) url += `&t_max=${tMax}`;
+  
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error('Error en la solicitud');
+    }
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('Error:', error);
+    return [];
+  }
+}
