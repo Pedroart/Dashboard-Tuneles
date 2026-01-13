@@ -44,16 +44,20 @@ async def table_columns(table: str):
         rows = await fetchall(db, f"PRAGMA table_info({table})")
         return [r["name"] for r in rows]
 
-def build_where(filters):
-    where = []
+def build_where(filters, table_alias: str = None):
+    if not filters:
+        return "", []
+
+    prefix = f"{table_alias}." if table_alias else ""
+    clauses = []
     params = []
+
     for col, op, val in filters:
-        if val is None:
-            continue
-        where.append(f"{col} {op} ?")
+        clauses.append(f'{prefix}"{col}" {op} ?')
         params.append(val)
-    where_sql = (" WHERE " + " AND ".join(where)) if where else ""
-    return where_sql, params
+
+    return " WHERE " + " AND ".join(clauses), params
+
 
 # -------------------------
 # Startup: leer columnas reales
@@ -183,64 +187,63 @@ async def get_frutas(
 
         return [{"id": r["value"], "name": r["value"]} for r in rows]
 
-
 # -------------------------
 # Procesos (lista) - filtros simples
 # -------------------------
 @app.get("/procesos")
 async def listar_procesos(
-    # fechas
-    started_from: Optional[str] = None,   # "2025-05-01 00:00:00"
-    started_to: Optional[str] = None,     # "2025-05-31 23:59:59"
+    started_from: Optional[str] = None,
+    started_to: Optional[str] = None,
 
-    # filtros opcionales
     temporada_anio: Optional[int] = None,
     packing_id: Optional[int] = None,
     epoca: Optional[str] = None,
 
-    # paginación
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ):
-    def col_exists(c): 
+    def col_exists(c):
         return c in PROCESOS_COLS
 
     filters = []
 
-    # temporada
     if temporada_anio is not None and col_exists("temporada_anio"):
         filters.append(("temporada_anio", "=", temporada_anio))
 
-    # packing
     if packing_id is not None and col_exists("packing_id"):
         filters.append(("packing_id", "=", packing_id))
 
-    # epoca (variada)
     if epoca and col_exists("epoca"):
         filters.append(("epoca", "=", epoca))
 
-    # fechas
     if started_from and col_exists("started_at"):
         filters.append(("started_at", ">=", started_from))
+
     if started_to and col_exists("started_at"):
         filters.append(("started_at", "<=", started_to))
 
-    # WHERE dinámico
-    where_sql, params = build_where(filters)
+    where_sql, params = build_where(filters, table_alias="p")
 
-    cols_sql = ", ".join([f'"{c}"' for c in PROCESOS_COLS])
+    cols_sql = ", ".join([f'p."{c}"' for c in PROCESOS_COLS])
+
+    cols_sql_extra = f"""
+        {cols_sql},
+        t.tipo_tunel AS tunel_tipo,
+        t.codigo     AS tunel_nick
+    """
 
     sql_items = f"""
-        SELECT {cols_sql}
-        FROM procesos
+        SELECT {cols_sql_extra}
+        FROM procesos p
+        LEFT JOIN tuneles t ON t.tunel_id = p.tunel_id
         {where_sql}
-        ORDER BY proceso_id DESC
+        ORDER BY p.proceso_id DESC
         LIMIT ? OFFSET ?
     """
 
     sql_total = f"""
         SELECT COUNT(*) as total
-        FROM procesos
+        FROM procesos p
         {where_sql}
     """
 

@@ -74,22 +74,106 @@
           </div>
         </div>
 
-        <button class="btn waves-effect waves-light blue" onclick="cargarDatos()">Buscar</button>
+        <button
+          class="btn waves-effect waves-light blue"
+          onclick="cargarDatos()"
+        >
+          Buscar
+        </button>
       </aside>
 
       <!-- Área principal -->
       <main class="dashboard-grid">
-        <!-- Ejemplo de widgets -->
-        <div class="widget card">Widget 1</div>
-        <div class="widget card">Widget 2</div>
-        <div class="widget card">Widget 3</div>
-        <div class="widget card">Widget 4</div>
+        <!-- CARD 1: Procesos por tipo de túnel -->
+        <div class="widget card kpi">
+          <div class="kpi-top">
+            <div>
+              <div class="kpi-title">Procesos (cerrados)</div>
+              <div class="kpi-value">128</div>
+            </div>
+            <div class="kpi-badge">Total</div>
+          </div>
+
+          <div class="kpi-subgrid">
+            <div class="kpi-sub">
+              <div class="kpi-sub-label">Materia prima</div>
+              <div class="kpi-sub-value">74</div>
+            </div>
+            <div class="kpi-sub">
+              <div class="kpi-sub-label">Producto terminado</div>
+              <div class="kpi-sub-value">54</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD 2: Tiempo promedio por túnel -->
+        <div class="widget card kpi">
+          <div class="kpi-top">
+            <div>
+              <div class="kpi-title">Tiempo de enfriamiento</div>
+              <div class="kpi-value">4.2 <span class="kpi-unit">h</span></div>
+            </div>
+            <div class="kpi-badge">Promedio</div>
+          </div>
+
+          <div class="kpi-subgrid">
+            <div class="kpi-sub">
+              <div class="kpi-sub-label">Materia prima</div>
+              <div class="kpi-sub-value">4.8 h</div>
+            </div>
+            <div class="kpi-sub">
+              <div class="kpi-sub-label">Producto terminado</div>
+              <div class="kpi-sub-value">3.6 h</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD 3: Temperatura -->
+        <div class="widget card kpi">
+          <div class="kpi-top">
+            <div>
+              <div class="kpi-title">Temperatura del proceso</div>
+              <div class="kpi-value">0.0 <span class="kpi-unit">°C</span></div>
+            </div>
+            <div class="kpi-badge">Objetivo</div>
+          </div>
+
+          <div class="kpi-subgrid">
+            <div class="kpi-sub">
+              <div class="kpi-sub-label">Mín global</div>
+              <div class="kpi-sub-value">-0.4 °C</div>
+            </div>
+            <div class="kpi-sub">
+              <div class="kpi-sub-label">Máx global</div>
+              <div class="kpi-sub-value">0.6 °C</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD 4: Fallas totales -->
+        <div class="widget card kpi">
+          <div class="kpi-top">
+            <div>
+              <div class="kpi-title">Fallas totales</div>
+              <div class="kpi-value">9</div>
+            </div>
+            <div class="kpi-badge danger">Alerta</div>
+          </div>
+
+          <div class="kpi-divider"></div>
+
+          <div class="kpi-section-title">Túneles con más fallas</div>
+          <div class="kpi-chips">
+            <div class="chip-dark">PK1_T01 <span>4</span></div>
+            <div class="chip-dark">PK1_T03 <span>3</span></div>
+            <div class="chip-dark">PK2_T02 <span>2</span></div>
+          </div>
+        </div>
 
         <div class="widget card">Widget 5</div>
         <div class="widget card">Widget 6</div>
         <div class="widget card">Widget 7</div>
         <div class="widget card">Widget 8</div>
-
       </main>
     </div>
 
@@ -102,8 +186,7 @@
     <!-- Custom JS -->
     <script src="js/script.js"></script>
 
-    <!-- Chart.js -->>
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
   </body>
 </html>
