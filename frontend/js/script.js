@@ -10,113 +10,125 @@ document.addEventListener("DOMContentLoaded", function () {
       clear: "Limpiar",
       done: "OK",
       months: [
-        "Enero",
-        "Febrero",
-        "Marzo",
-        "Abril",
-        "Mayo",
-        "Junio",
-        "Julio",
-        "Agosto",
-        "Septiembre",
-        "Octubre",
-        "Noviembre",
-        "Diciembre",
+        "Enero","Febrero","Marzo","Abril","Mayo","Junio",
+        "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre",
       ],
-      monthsShort: [
-        "Ene",
-        "Feb",
-        "Mar",
-        "Abr",
-        "May",
-        "Jun",
-        "Jul",
-        "Ago",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dic",
-      ],
-      weekdays: [
-        "Domingo",
-        "Lunes",
-        "Martes",
-        "Miércoles",
-        "Jueves",
-        "Viernes",
-        "Sábado",
-      ],
-      weekdaysShort: ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"],
-      weekdaysAbbrev: ["D", "L", "M", "M", "J", "V", "S"],
+      monthsShort: ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"],
+      weekdays: ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"],
+      weekdaysShort: ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"],
+      weekdaysAbbrev: ["D","L","M","M","J","V","S"],
     },
   });
 });
 
 document.addEventListener("DOMContentLoaded", function () {
-  var elems = document.querySelectorAll("select");
-  var instances = M.FormSelect.init(elems);
+  const elems = document.querySelectorAll("select");
+  M.FormSelect.init(elems);
   cargarPackings();
 });
 
-async function cargarPackings() {
-  const packings = await getPackings();
-  const select = document.getElementById('packing');
-  packings.forEach(p => {
-    const option = document.createElement('option');
-    option.value = p;
-    option.textContent = p;
-    select.appendChild(option);
+// Helpers para selects
+function setSelectOptions(selectEl, placeholderText, items, { disabled = false } = {}) {
+  selectEl.innerHTML = "";
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.disabled = true;
+  placeholder.selected = true;
+  placeholder.textContent = placeholderText;
+  selectEl.appendChild(placeholder);
+
+  items.forEach((it) => {
+    const option = document.createElement("option");
+    option.value = String(it.id);
+    option.textContent = it.name;
+    selectEl.appendChild(option);
   });
-  M.FormSelect.init(document.querySelectorAll('select'));
+
+  selectEl.disabled = disabled;
+  M.FormSelect.init(document.querySelectorAll("select"));
 }
 
-document.getElementById('packing').addEventListener('change', async function() {
-  const packing = this.value;
-  const temporadas = await getTemporadas(packing);
-  const selectTemp = document.getElementById('temporada');
-  selectTemp.innerHTML = '<option value="" disabled selected>Seleccione temporada</option>';
-  temporadas.forEach(t => {
-    const option = document.createElement('option');
-    option.value = t;
-    option.textContent = t;
-    selectTemp.appendChild(option);
-  });
-  selectTemp.disabled = false;
-  document.getElementById('fruta').disabled = true;
-  document.getElementById('fruta').innerHTML = '<option value="" disabled selected>Seleccione fruta</option>';
-  M.FormSelect.init(document.querySelectorAll('select'));
-});
+function resetSelect(selectId, placeholderText, disabled = true) {
+  const el = document.getElementById(selectId);
+  setSelectOptions(el, placeholderText, [], { disabled });
+}
 
-document.getElementById('temporada').addEventListener('change', async function() {
-  const packing = document.getElementById('packing').value;
-  const temporada = this.value;
-  const frutas = await getFrutas(packing, temporada);
-  const selectFruta = document.getElementById('fruta');
-  selectFruta.innerHTML = '<option value="" disabled selected>Seleccione fruta</option>';
-  frutas.forEach(f => {
-    const option = document.createElement('option');
-    option.value = f;
-    option.textContent = f;
-    selectFruta.appendChild(option);
-  });
-  selectFruta.disabled = false;
-  M.FormSelect.init(document.querySelectorAll('select'));
-});
+async function cargarPackings() {
+  const packings = await getPackings(); // -> [{id, name}]
+  const select = document.getElementById("packing");
 
-function cargarDatos() {
-  const packing = document.getElementById('packing').value;
-  const temporada = document.getElementById('temporada').value;
-  const fruta = document.getElementById('fruta').value;
-  
-  if (!temporada) {
-    M.toast({html: 'Seleccione al menos una temporada'});
+  setSelectOptions(select, "Seleccione packing", packings, { disabled: false });
+
+  // resetea dependientes
+  resetSelect("temporada", "Seleccione temporada", true);
+  resetSelect("fruta", "Seleccione fruta", true);
+}
+
+document.getElementById("packing").addEventListener("change", async function () {
+  const packingIdStr = this.value;
+  const packing_id = packingIdStr ? Number(packingIdStr) : null;
+
+  // reset fruta mientras carga temporada
+  resetSelect("fruta", "Seleccione fruta", true);
+
+  if (!packing_id) {
+    resetSelect("temporada", "Seleccione temporada", true);
     return;
   }
-  
-  getDataTuneles(packing, temporada, fruta).then(data => {
-    if (data) {
-      console.log(`Total de procesos: ${data.total}`);
-      console.log(`Procesos obtenidos: ${data.items.length}`);
-    }
+
+  const temporadas = await getTemporadas(packing_id); // -> [{id, name}]
+  const selectTemp = document.getElementById("temporada");
+
+  setSelectOptions(selectTemp, "Seleccione temporada", temporadas, { disabled: false });
+});
+
+document.getElementById("temporada").addEventListener("change", async function () {
+  const packingIdStr = document.getElementById("packing").value;
+  const temporadaStr = this.value;
+
+  const packing_id = packingIdStr ? Number(packingIdStr) : null;
+  const temporada_anio = temporadaStr ? Number(temporadaStr) : null;
+
+  if (!packing_id || !temporada_anio) {
+    resetSelect("fruta", "Seleccione fruta", true);
+    return;
+  }
+
+  const frutas = await getFrutas(packing_id, temporada_anio); // -> [{id, name}] (epoca)
+  const selectFruta = document.getElementById("fruta");
+
+  setSelectOptions(selectFruta, "Seleccione fruta", frutas, { disabled: false });
+});
+
+async function cargarDatos() {
+  const packingIdStr = document.getElementById("packing").value;
+  const temporadaStr = document.getElementById("temporada").value;
+  const frutaStr = document.getElementById("fruta").value;
+
+  const packing_id = packingIdStr ? Number(packingIdStr) : null;
+  const temporada_anio = temporadaStr ? Number(temporadaStr) : null;
+  const epoca = frutaStr || null; // epoca es string normalmente
+
+  if (!temporada_anio) {
+    M.toast({ html: "Seleccione al menos una temporada" });
+    return;
+  }
+
+  const { total, items } = await wraperGetProcesos({
+    packing_id,
+    temporada_anio,
+    epoca,
+    limit: 50,
+    offset: 0,
   });
+
+  console.log("Total procesos:", total);
+  console.log("Listado procesos:", items);
+
+  if (total === 0) {
+    M.toast({ html: "No se encontraron procesos" });
+    return;
+  }
+
+  // aquí sigues con tu render
 }

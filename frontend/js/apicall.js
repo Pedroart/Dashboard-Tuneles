@@ -1,5 +1,7 @@
 const API_BASE = "http://127.0.0.1:8000";
 
+let dataProcesos = []
+
 async function fetchJSON(url) {
   const response = await fetch(url);
   if (!response.ok) {
@@ -8,24 +10,37 @@ async function fetchJSON(url) {
   return await response.json();
 }
 
-async function getDataTuneles(packing, temporada, fruta, limit = 50, offset = 0) {
-    let url = `${API_BASE}/procesos?limit=${limit}&offset=${offset}`;
-    
-    if (temporada) url += `&temporada_anio=${temporada}`;
-    if (fruta) url += `&epoca=${fruta}`;
-    
-    try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error('Error en la solicitud');
-        }
-        const result = await response.json();
-        console.log('Datos de procesos:', result);
-        return result;
-    } catch (error) {
-        console.error('Error:', error);
-        return null;
-    }
+async function getProcesos({
+  started_from = null,
+  started_to = null,
+  temporada_anio = null,
+  packing_id = null,
+  epoca = null,
+  limit = 500,
+  offset = 0
+} = {}) {
+
+  const params = new URLSearchParams();
+
+  if (started_from) params.append("started_from", started_from);
+  if (started_to) params.append("started_to", started_to);
+  if (temporada_anio !== null) params.append("temporada_anio", temporada_anio);
+  if (packing_id !== null) params.append("packing_id", packing_id);
+  if (epoca) params.append("epoca", epoca);
+
+  params.append("limit", limit);
+  params.append("offset", offset);
+
+  const url = `${API_BASE}/procesos?${params.toString()}`;
+
+  try {
+    const result = await fetchJSON(url);
+    console.log("Procesos:", result);
+    return result;
+  } catch (error) {
+    console.error("Error getProcesos:", error);
+    return null;
+  }
 }
 
 async function getPackings(){
@@ -75,3 +90,44 @@ async function getFrutas(packing, temporada){
         return [];
     }
 }
+
+
+async function wraperGetProcesos({
+  packing_id = null,
+  started_from = null,
+  started_to = null,
+  temporada_anio = null,
+  epoca = null,
+  limit = 500,
+  offset = 0
+} = {}) {
+
+  const result = await getProcesos({
+    started_from,
+    started_to,
+    temporada_anio,
+    packing_id,
+    epoca,
+    limit,
+    offset
+  });
+
+  // Si falló la API, devolvemos algo seguro
+  if (!result || typeof result !== "object") {
+    dataProcesos = [];
+    return { total: 0, items: [] };
+  }
+
+  // Normaliza items
+  const items = Array.isArray(result.items) ? result.items : [];
+
+  // Guarda en memoria si lo necesitas
+  dataProcesos = items;
+
+  // Devuelve lo que te interese (total + items)
+  return {
+    total: Number(result.total ?? items.length ?? 0),
+    items
+  };
+}
+
