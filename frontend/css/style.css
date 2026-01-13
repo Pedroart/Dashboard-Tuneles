@@ -51,3 +51,24 @@ body {
   grid-column: span 3;
   grid-row: span 2;
 }
+
+
+.widget:nth-child(5) {
+  grid-column: span 6;
+  grid-row: span 3;
+}
+
+.widget:nth-child(6) {
+  grid-column: span 6;
+  grid-row: span 3;
+}
+
+.widget:nth-child(7) {
+  grid-column: span 6;
+  grid-row: span 3;
+}
+
+.widget:nth-child(8) {
+  grid-column: span 6;
+  grid-row: span 3;
+}
