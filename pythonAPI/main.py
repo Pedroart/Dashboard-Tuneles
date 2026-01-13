@@ -102,8 +102,63 @@ async def catalog(name: str):
 async def get_temporadas():
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
-        rows = await fetchall(db, "SELECT DISTINCT temporada_anio FROM procesos ORDER BY temporada_anio DESC")
+        rows = await fetchall(
+            db,
+            """
+            SELECT DISTINCT temporada_anio
+            FROM procesos
+            WHERE temporada_anio IS NOT NULL
+            ORDER BY temporada_anio DESC
+            """
+        )
         return [r["temporada_anio"] for r in rows]
+
+
+@app.get("/packings")
+async def get_packings():
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        rows = await fetchall(db, "SELECT * FROM packings ORDER BY nombre ASC")
+        return [dict(r) for r in rows]
+
+
+@app.get("/variedad")
+async def get_epocas(
+    temporada_anio: Optional[int] = Query(None),
+    packing_id: Optional[int] = Query(None),
+    tunel_id: Optional[int] = Query(None),
+):
+    filters = ["epoca IS NOT NULL"]
+    params = []
+
+    if temporada_anio is not None:
+        filters.append("temporada_anio = ?")
+        params.append(temporada_anio)
+
+    if packing_id is not None:
+        filters.append("packing_id = ?")
+        params.append(packing_id)
+
+    if tunel_id is not None:
+        filters.append("tunel_id = ?")
+        params.append(tunel_id)
+
+    where_sql = " WHERE " + " AND ".join(filters)
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        rows = await fetchall(
+            db,
+            f"""
+            SELECT DISTINCT epoca
+            FROM procesos
+            {where_sql}
+            ORDER BY epoca ASC
+            """,
+            params
+        )
+        return [r["epoca"] for r in rows]
+
 
 # -------------------------
 # Procesos (lista) - filtro simple por fechas
