@@ -102,8 +102,32 @@ async function wraperGetProcesos({
   offset = 0
 } = {}) {
 
-  const result = await getProcesos(temporada_anio,packing_id,epoca,limit,offset);
-  
-  return result["total"]
-  
+  const result = await getProcesos({
+    started_from,
+    started_to,
+    temporada_anio,
+    packing_id,
+    epoca,
+    limit,
+    offset
+  });
+
+  // Si falló la API, devolvemos algo seguro
+  if (!result || typeof result !== "object") {
+    dataProcesos = [];
+    return { total: 0, items: [] };
+  }
+
+  // Normaliza items
+  const items = Array.isArray(result.items) ? result.items : [];
+
+  // Guarda en memoria si lo necesitas
+  dataProcesos = items;
+
+  // Devuelve lo que te interese (total + items)
+  return {
+    total: Number(result.total ?? items.length ?? 0),
+    items
+  };
 }
+
