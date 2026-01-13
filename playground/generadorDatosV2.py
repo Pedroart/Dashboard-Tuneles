@@ -27,11 +27,11 @@ os.makedirs(base_dir, exist_ok=True)
 tunnel_type = {t: ('corto' if int(t[1:]) <= 5 else 'largo') for t in tuneles}
 
 # Rangos de duración (minutos)
-DURACION_CORTO_NORMAL = (45, 60)     # dentro de la normal <= 1h
-DURACION_LARGO_NORMAL = (390, 450)   # ~6.5h a 7.5h (aprox 7h)
+DURACION_CORTO_NORMAL = (90, 180)     # dentro de la normal <= 1h
+DURACION_LARGO_NORMAL = (390, 600)   # ~6.5h a 7.5h (aprox 7h)
 # Duración “totalmente diferente” (anomalía: tipo opuesto)
-DURACION_CORTO_ANOM = (360, 540)     # si era corto, anómalo largo (6h a 9h)
-DURACION_LARGO_ANOM = (30, 90)       # si era largo, anómalo corto (0.5h a 1.5h)
+DURACION_CORTO_ANOM = (180, 200)     # si era corto, anómalo largo (6h a 9h)
+DURACION_LARGO_ANOM = (600, 630)       # si era largo, anómalo corto (0.5h a 1.5h)
 
 # Para guardar metadatos globales
 metadata_rows = []
