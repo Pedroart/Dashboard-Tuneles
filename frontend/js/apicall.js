@@ -43,52 +43,52 @@ async function getProcesos({
   }
 }
 
-async function getTemporadas() {
-  try {
-    const result = await fetchJSON(`${API_BASE}/temporadas`);
-    console.log("Temporadas:", result);
-    return result; // [2025, 2024, ...]
-  } catch (error) {
-    console.error("Error getTemporadas:", error);
-    return [];
-  }
+async function getPackings(){
+    const url = `${API_BASE}/packings`;
+    try{
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error('Error en la solicitud');
+        }
+        const result = await response.json();
+        return result;
+    }
+    catch (error) {
+        console.error('Error:', error);
+        return [];
+    }
 }
 
-
-async function getPackings() {
-  try {
-    const result = await fetchJSON(`${API_BASE}/packings`);
-    console.log("Packings:", result);
-    return result; // [{id, nombre}]
-  } catch (error) {
-    console.error("Error getPackings:", error);
-    return [];
-  }
+async function getTemporadas(packing){
+    const url = `${API_BASE}/temporadas?packing=${packing}`;
+    try{
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error('Error en la solicitud');
+        }
+        const result = await response.json();
+        return result;
+    }
+    catch (error) {
+        console.error('Error:', error);
+        return [];
+    }
 }
 
-
-async function getVariedades({
-  temporada_anio = null,
-  packing_id = null,
-  tunel_id = null
-} = {}) {
-
-  const params = new URLSearchParams();
-
-  if (temporada_anio !== null) params.append("temporada_anio", temporada_anio);
-  if (packing_id !== null) params.append("packing_id", packing_id);
-  if (tunel_id !== null) params.append("tunel_id", tunel_id);
-
-  const url = `${API_BASE}/variedad?${params.toString()}`;
-
-  try {
-    const result = await fetchJSON(url);
-    console.log("Variedades:", result);
-    return result; // [{id, name}]
-  } catch (error) {
-    console.error("Error getVariedades:", error);
-    return [];
-  }
+async function getFrutas(packing, temporada){
+    const url = `${API_BASE}/frutas?packing=${packing}&temporada=${temporada}`;
+    try{
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error('Error en la solicitud');
+        }
+        const result = await response.json();
+        return result;
+    }
+    catch (error) {
+        console.error('Error:', error);
+        return [];
+    }
 }
 
 
