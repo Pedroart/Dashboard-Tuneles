@@ -89,3 +89,4 @@ async function getVariedades({
     return [];
   }
 }
+>>>>>>> 2313bf9c4925d14e2d7f33ed136a2d1f349a0bd6

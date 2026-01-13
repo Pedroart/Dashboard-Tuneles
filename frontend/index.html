@@ -53,22 +53,30 @@
 
         <div class="row">
           <div class="input-field col s12">
-            <select name="" id="">
-              <option value="1">2025</option>
+            <select id="temporada">
             </select>
             <label>Temporada</label>
           </div>
 
           <div class="input-field col s12">
-            <select>
-              <option value="" disabled selected>Frutas</option>
-              <option value="1">Option 1</option>
-              <option value="2">Option 2</option>
-              <option value="3">Option 3</option>
+            <select id="fruta">
+              <option value="" disabled selected>Seleccione fruta</option>
+              <option value="mora">Mora</option>
+              <option value="uva">Uva</option>
+              <option value="mixto">Mixto</option>
             </select>
-            <label>Materialize Select</label>
+            <label>Fruta</label>
+          </div>
+
+          <div class="input-field col s12">
+            <select id="packing">
+              <option value="" disabled selected>Seleccione packing</option>
+            </select>
+            <label>Packing</label>
           </div>
         </div>
+
+        <button class="btn waves-effect waves-light blue" onclick="cargarDatos()">Buscar</button>
       </aside>
 
       <!-- Área principal -->
@@ -90,5 +98,55 @@
 
     <!-- Custom JS -->
     <script src="js/script.js"></script>
+
+    <script>
+      async function cargarTemporadas() {
+        const temporadas = await getTemporadas();
+        const select = document.getElementById('temporada');
+        temporadas.forEach(t => {
+          const option = document.createElement('option');
+          option.value = t;
+          option.textContent = t;
+          select.appendChild(option);
+        });
+        M.FormSelect.init(document.querySelectorAll('select'));
+      }
+
+      document.getElementById('temporada').addEventListener('change', async function() {
+        const temporada = this.value;
+        const fruta = document.getElementById('fruta').value;
+        if (fruta) {
+          await cargarPackings(temporada, fruta);
+        }
+      });
+
+      document.getElementById('fruta').addEventListener('change', async function() {
+        const temporada = document.getElementById('temporada').value;
+        const fruta = this.value;
+        if (temporada) {
+          await cargarPackings(temporada, fruta);
+        }
+      });
+
+      async function cargarPackings(temporada, fruta) {
+        const packings = await getPackings(temporada, fruta);
+        const select = document.getElementById('packing');
+        select.innerHTML = '<option value="" disabled selected>Seleccione packing</option>';
+        packings.forEach(p => {
+          const option = document.createElement('option');
+          option.value = p;
+          option.textContent = p;
+          select.appendChild(option);
+        });
+        M.FormSelect.init(select);
+      }
+
+      function cargarDatos() {
+        const temporada = document.getElementById('temporada').value;
+        getDataTuneles(null, null, temporada, 10, 0);
+      }
+
+      cargarTemporadas();
+    </script>
   </body>
 </html>
