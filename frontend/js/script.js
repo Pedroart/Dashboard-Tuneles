@@ -127,8 +127,15 @@ async function cargarDatos() {
 
   if (total === 0) {
     M.toast({ html: "No se encontraron procesos" });
+    actualizarWidget1(0, []);
     return;
   }
+
+  // Actualizar widget 1
+  actualizarWidget1(total, items);
+
+  // Actualizar widget 2
+  actualizarWidget2(items);
 
   // Renderizar gráfico con el primer proceso
   if (items.length > 0 && items[0].proceso_id) {

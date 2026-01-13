@@ -228,19 +228,18 @@ async def listar_procesos(
     # WHERE dinámico
     where_sql, params = build_where(filters)
 
-    cols_sql = ", ".join([f'"{c}"' for c in PROCESOS_COLS])
-
     sql_items = f"""
-        SELECT {cols_sql}
-        FROM procesos
+        SELECT p.*, tc.tipo_caja
+        FROM procesos p
+        JOIN tipos_caja tc ON p.caja_id = tc.caja_id
         {where_sql}
-        ORDER BY proceso_id DESC
+        ORDER BY p.proceso_id DESC
         LIMIT ? OFFSET ?
     """
 
     sql_total = f"""
         SELECT COUNT(*) as total
-        FROM procesos
+        FROM procesos p
         {where_sql}
     """
 
