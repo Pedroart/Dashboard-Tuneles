@@ -6,5 +6,12 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 
 python -m venv venv
 venv\Scripts\activate
+pip install -r requirements.txt
+
 
 uvicorn main:app --reload
+
+
+# Guarda Cambios
+
+pip freeze > requirements.txt
