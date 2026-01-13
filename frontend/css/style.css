@@ -172,6 +172,11 @@ nav .brand-logo{
 
 
 /* ===== KPI Cards ===== */
+
+.widget.card {
+  margin: 0;
+}
+
 .kpi{
   display: flex;
   flex-direction: column;
@@ -203,7 +208,7 @@ nav .brand-logo{
 }
 
 .kpi-unit{
-  font-size: 16px;
+  font-size: 12px;
   font-weight: 650;
   color: rgba(255,255,255,.70);
   margin-left: 6px;
@@ -231,8 +236,8 @@ nav .brand-logo{
 }
 
 .kpi-sub{
-  padding: 10px 12px;
-  border-radius: 12px;
+  padding: 3px 5px;
+  border-radius: 7px;
   border: 1px solid rgba(255,255,255,.08);
   background: rgba(255,255,255,.03);
 }
@@ -270,8 +275,8 @@ nav .brand-logo{
 .chip-dark{
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
+  gap: 2px;
+  padding: 2px 1px 2px 6px;
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(255,255,255,.04);
