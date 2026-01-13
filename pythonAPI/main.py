@@ -99,55 +99,58 @@ async def catalog(name: str):
         return [dict(r) for r in rows]
 
 @app.get("/temporadas")
-async def get_temporadas():
+async def get_temporadas(packing: Optional[str] = Query(None)):
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
-        rows = await fetchall(
-            db,
-            """
-            SELECT DISTINCT temporada_anio
-            FROM procesos
-            WHERE temporada_anio IS NOT NULL
-            ORDER BY temporada_anio DESC
-            """
-        )
-        return [{
-            "id": r["temporada_anio"],
-            "name": r["temporada_anio"]
-        } for r in rows]
+        
+        if packing:
+            rows = await fetchall(
+                db,
+                """
+                SELECT DISTINCT p.temporada_anio
+                FROM procesos p
+                JOIN packings pk ON p.packing_id = pk.packing_id
+                WHERE pk.nombre = ? AND p.temporada_anio IS NOT NULL
+                ORDER BY p.temporada_anio DESC
+                """,
+                [packing]
+            )
+        else:
+            rows = await fetchall(
+                db,
+                """
+                SELECT DISTINCT temporada_anio
+                FROM procesos
+                WHERE temporada_anio IS NOT NULL
+                ORDER BY temporada_anio DESC
+                """
+            )
+        return [r["temporada_anio"] for r in rows]
 
 
 @app.get("/packings")
 async def get_packings():
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
-        rows = await fetchall(db, "SELECT * FROM packings ORDER BY nombre ASC")
-        return [{
-            "id": r["packing_id"],
-            "name": r["nombre"]
-        } for r in rows]
+        rows = await fetchall(db, "SELECT DISTINCT nombre FROM packings ORDER BY nombre ASC")
+        return [r["nombre"] for r in rows]
 
 
-@app.get("/variedad")
-async def get_epocas(
-    temporada_anio: Optional[int] = Query(None),
-    packing_id: Optional[int] = Query(None),
-    tunel_id: Optional[int] = Query(None),
+@app.get("/frutas")
+async def get_frutas(
+    packing: Optional[str] = Query(None),
+    temporada: Optional[int] = Query(None)
 ):
-    filters = ["epoca IS NOT NULL"]
+    filters = ["p.epoca IS NOT NULL"]
     params = []
 
-    if temporada_anio is not None:
-        filters.append("temporada_anio = ?")
-        params.append(temporada_anio)
+    if packing:
+        filters.append("pk.nombre = ?")
+        params.append(packing)
 
-    if packing_id is not None:
-        filters.append("packing_id = ?")
-        params.append(packing_id)
-
-    if tunel_id is not None:
-        filters.append("tunel_id = ?")
-        params.append(tunel_id)
+    if temporada:
+        filters.append("p.temporada_anio = ?")
+        params.append(temporada)
 
     where_sql = " WHERE " + " AND ".join(filters)
 
@@ -156,17 +159,15 @@ async def get_epocas(
         rows = await fetchall(
             db,
             f"""
-            SELECT DISTINCT epoca
-            FROM procesos
+            SELECT DISTINCT p.epoca
+            FROM procesos p
+            JOIN packings pk ON p.packing_id = pk.packing_id
             {where_sql}
-            ORDER BY epoca ASC
+            ORDER BY p.epoca ASC
             """,
             params
         )
-        return [{
-                "id": r["epoca"],
-                "name": r["epoca"]
-            } for r in rows]
+        return [r["epoca"] for r in rows]
 
 
 from typing import Optional

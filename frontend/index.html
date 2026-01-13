@@ -35,7 +35,7 @@
       <aside class="sidebar z-depth-2">
         <h6>Filtros</h6>
 
-        <div class="row">
+        <!--div class="row">
           <div class="col s12">
             <div class="input-field">
               <input type="text" class="datepicker" id="fechaDesde" />
@@ -49,30 +49,28 @@
               <label for="fechaHasta">Hasta</label>
             </div>
           </div>
-        </div>
+        </!--div-->
 
         <div class="row">
-          <div class="input-field col s12">
-            <select id="temporada">
-            </select>
-            <label>Temporada</label>
-          </div>
-
-          <div class="input-field col s12">
-            <select id="fruta">
-              <option value="" disabled selected>Seleccione fruta</option>
-              <option value="mora">Mora</option>
-              <option value="uva">Uva</option>
-              <option value="mixto">Mixto</option>
-            </select>
-            <label>Fruta</label>
-          </div>
-
           <div class="input-field col s12">
             <select id="packing">
               <option value="" disabled selected>Seleccione packing</option>
             </select>
             <label>Packing</label>
+          </div>
+
+          <div class="input-field col s12">
+            <select id="temporada" disabled>
+              <option value="" disabled selected>Seleccione temporada</option>
+            </select>
+            <label>Temporada</label>
+          </div>
+
+          <div class="input-field col s12">
+            <select id="fruta" disabled>
+              <option value="" disabled selected>Seleccione fruta</option>
+            </select>
+            <label>Fruta</label>
           </div>
         </div>
 
@@ -93,60 +91,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
 
     <!--Api call python-->
-
     <script src="js/apicall.js"></script>
 
     <!-- Custom JS -->
     <script src="js/script.js"></script>
-
-    <script>
-      async function cargarTemporadas() {
-        const temporadas = await getTemporadas();
-        const select = document.getElementById('temporada');
-        temporadas.forEach(t => {
-          const option = document.createElement('option');
-          option.value = t;
-          option.textContent = t;
-          select.appendChild(option);
-        });
-        M.FormSelect.init(document.querySelectorAll('select'));
-      }
-
-      document.getElementById('temporada').addEventListener('change', async function() {
-        const temporada = this.value;
-        const fruta = document.getElementById('fruta').value;
-        if (fruta) {
-          await cargarPackings(temporada, fruta);
-        }
-      });
-
-      document.getElementById('fruta').addEventListener('change', async function() {
-        const temporada = document.getElementById('temporada').value;
-        const fruta = this.value;
-        if (temporada) {
-          await cargarPackings(temporada, fruta);
-        }
-      });
-
-      async function cargarPackings(temporada, fruta) {
-        const packings = await getPackings(temporada, fruta);
-        const select = document.getElementById('packing');
-        select.innerHTML = '<option value="" disabled selected>Seleccione packing</option>';
-        packings.forEach(p => {
-          const option = document.createElement('option');
-          option.value = p;
-          option.textContent = p;
-          select.appendChild(option);
-        });
-        M.FormSelect.init(select);
-      }
-
-      function cargarDatos() {
-        const temporada = document.getElementById('temporada').value;
-        getDataTuneles(null, null, temporada, 10, 0);
-      }
-
-      cargarTemporadas();
-    </script>
   </body>
 </html>
