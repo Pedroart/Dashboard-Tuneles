@@ -1,92 +1,94 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>Dashboard Túneles</title>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Dashboard Túneles</title>
 
-  <!-- Materialize -->
-  <link rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <!-- Materialize -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"
+    />
 
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
 
-  <!-- Custom CSS -->
-  <link rel="stylesheet" href="css/style.css">
-</head>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
 
-<body>
-
-  <!-- Navbar -->
-  <nav class="blue darken-2">
-    <div class="nav-wrapper">
-      <a href="#" class="brand-logo" style="margin-left:15px;">Dashboard Túneles</a>
-    </div>
-  </nav>
-
-  <!-- Layout principal -->
-  <div class="app-layout">
-
-    <!-- Sidebar -->
-    <aside class="sidebar z-depth-2">
-      <h6>Filtros</h6>
-
-  
-
-      <div class="row">
-        <div class="col s12">
-          <div class="input-field">
-            <input type="text" class="datepicker" id="fechaDesde">
-            <label for="fechaDesde">Desde</label>
-          </div>
-        </div>
-
-        <div class="col s12">
-          <div class="input-field">
-            <input type="text" class="datepicker" id="fechaHasta">
-            <label for="fechaHasta">Hasta</label>
-          </div>
-        </div>
+  <body>
+    <!-- Navbar -->
+    <nav class="blue darken-2">
+      <div class="nav-wrapper">
+        <a href="#" class="brand-logo" style="margin-left: 15px"
+          >Dashboard Túneles</a
+        >
       </div>
+    </nav>
 
+    <!-- Layout principal -->
+    <div class="app-layout">
+      <!-- Sidebar -->
+      <aside class="sidebar z-depth-2">
+        <h6>Filtros</h6>
 
-      <div class="row">
+        <div class="row">
+          <div class="col s12">
+            <div class="input-field">
+              <input type="text" class="datepicker" id="fechaDesde" />
+              <label for="fechaDesde">Desde</label>
+            </div>
+          </div>
 
-        <div class="col s12">
-          <div class="input-field">
+          <div class="col s12">
+            <div class="input-field">
+              <input type="text" class="datepicker" id="fechaHasta" />
+              <label for="fechaHasta">Hasta</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="input-field col s12">
             <select name="" id="">
-              <option value="1">UVA</option>
+              <option value="1">2025</option>
             </select>
+            <label>Temporada</label>
           </div>
-          <label>Temporada</label>
+
+          <div class="input-field col s12">
+            <select>
+              <option value="" disabled selected>Frutas</option>
+              <option value="1">Option 1</option>
+              <option value="2">Option 2</option>
+              <option value="3">Option 3</option>
+            </select>
+            <label>Materialize Select</label>
+          </div>
         </div>
+      </aside>
 
-      </div>
-      
-    </aside>
+      <!-- Área principal -->
+      <main class="dashboard-grid">
+        <!-- Ejemplo de widgets -->
+        <div class="widget card">Widget 1</div>
+        <div class="widget card">Widget 2</div>
+        <div class="widget card">Widget 3</div>
+        <div class="widget card">Widget 4</div>
+      </main>
+    </div>
 
-    <!-- Área principal -->
-    <main class="dashboard-grid">
+    <!-- Materialize JS (CDN) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
 
-      <!-- Ejemplo de widgets -->
-      <div class="widget card">Widget 1</div>
-      <div class="widget card">Widget 2</div>
-      <div class="widget card">Widget 3</div>
-      <div class="widget card">Widget 4</div>
+    <!--Api call python-->
 
-    </main>
+    <script src="js/apicall.js"></script>
 
-  </div>
-
-  <!-- Materialize JS (CDN) -->
-  <script
-    src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js">
-  </script>
-
-  <!--Api call python-->
-
-  <script src=js/apicall.js></script>
-
-  <!-- Custom JS -->
-  <script src="js/script.js"></script>
-</body>
+    <!-- Custom JS -->
+    <script src="js/script.js"></script>
+  </body>
 </html>
