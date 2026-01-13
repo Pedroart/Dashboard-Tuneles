@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard Túneles</title>
+
+  <!-- Materialize CSS (CDN) -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"
+  >
+
+  <!-- Icons -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body class="grey lighten-4">
+
+  <!-- Navbar -->
+  <nav class="blue darken-2">
+    <div class="nav-wrapper container">
+      <a href="#" class="brand-logo">Dashboard Túneles</a>
+    </div>
+  </nav>
+
+  <!-- Contenido -->
+  <div class="container" style="margin-top: 20px;">
+
+    <div class="row">
+      <div class="col s12 m4">
+        <div class="card">
+          <div class="card-content">
+            <span class="card-title">Procesos</span>
+            <p id="totalProcesos">–</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabla -->
+    <table class="highlight responsive-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Época</th>
+          <th>Masa (t)</th>
+          <th>Duración (min)</th>
+        </tr>
+      </thead>
+      <tbody id="tablaProcesos"></tbody>
+    </table>
+
+  </div>
+
+  <!-- Materialize JS (CDN) -->
+  <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js">
+  </script>
+
+  <!-- Custom JS -->
+  <script src="js/script.js"></script>
+</body>
+</html>
