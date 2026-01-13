@@ -131,3 +131,40 @@ async function wraperGetProcesos({
   };
 }
 
+async function getSerie(procesoId, tMin = 0, tMax = null, step = 1) {
+  let url = `${API_BASE}/procesos/${procesoId}/serie?t_min=${tMin}&step=${step}`;
+  if (tMax) url += `&t_max=${tMax}`;
+  
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Error en la solicitud');
+    return await response.json();
+  } catch (error) {
+    console.error('Error:', error);
+    return [];
+  }
+}
+
+async function getSeriesPorTipoCaja(items) {
+  const tiposCaja = {};
+  
+  console.log('Procesando items:', items.length);
+  
+  for (const item of items.slice(0, 50)) {
+    const tipoCaja = item.tipo_caja;
+    
+    if (!tipoCaja) {
+      console.warn('Item sin tipo_caja:', item.proceso_id);
+      continue;
+    }
+    
+    if (!tiposCaja[tipoCaja]) tiposCaja[tipoCaja] = [];
+    
+    const serie = await getSerie(item.proceso_id, 0, null, 5);
+    if (serie.length > 0) tiposCaja[tipoCaja].push(serie);
+  }
+  
+  console.log('Tipos de caja encontrados:', Object.keys(tiposCaja));
+  return tiposCaja;
+}
+

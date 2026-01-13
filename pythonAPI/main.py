@@ -228,6 +228,7 @@ async def listar_procesos(
 
     cols_sql_extra = f"""
         {cols_sql},
+        tc.tipo_caja AS tipo_caja,
         t.tipo_tunel AS tunel_tipo,
         t.codigo     AS tunel_nick
     """
@@ -236,6 +237,7 @@ async def listar_procesos(
         SELECT {cols_sql_extra}
         FROM procesos p
         LEFT JOIN tuneles t ON t.tunel_id = p.tunel_id
+        LEFT JOIN tipos_caja tc ON tc.caja_id = p.caja_id
         {where_sql}
         ORDER BY p.proceso_id DESC
         LIMIT ? OFFSET ?
