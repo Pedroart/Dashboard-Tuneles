@@ -6,3 +6,5 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 
 python -m venv venv
 venv\Scripts\activate
+
+uvicorn main:app --reload

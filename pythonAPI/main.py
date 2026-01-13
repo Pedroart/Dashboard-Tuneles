@@ -1,233 +1,273 @@
-from typing import Optional, List
 from fastapi import FastAPI, Query, HTTPException
-from sqlalchemy import (
-    Column, Integer, Float, String, ForeignKey,
-    select, func, text
-)
-from sqlalchemy.orm import declarative_base, relationship
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from typing import Optional
+import aiosqlite
 
-DB_PATH = "datos.db"
-DATABASE_URL = f"sqlite+aiosqlite:///{DB_PATH}"
+DB_PATH = "datos_2025.db"  # <-- cambia si tu db se llama distinto
 
-Base = declarative_base()
+app = FastAPI(title="API Procesos (SQLite) - RAW", version="3.1")
 
-class Proceso(Base):
-    __tablename__ = "procesos"
+PROCESOS_COLS = []
+MEDICIONES_COLS = []
+CATALOGS = {
+    "packings": [],
+    "tuneles": [],
+    "tipos_caja": [],
+}
 
-    proceso_id = Column(Integer, primary_key=True, index=True)
-    epoca = Column(String)
-    packing = Column(String)
-    tunel = Column(String)
-    tipo_tunel = Column(String)
-    iteracion = Column(Integer)
+# -------------------------
+# Helpers compatibles con cualquier aiosqlite
+# -------------------------
+async def fetchone(db: aiosqlite.Connection, sql: str, params=None):
+    cur = await db.execute(sql, params or [])
+    row = await cur.fetchone()
+    await cur.close()
+    return row
 
-    mass_group = Column(String)
-    masa_ton = Column(Float)
-    ocupabilidad = Column(Float)
-    caudal_factor = Column(Float)
+async def fetchall(db: aiosqlite.Connection, sql: str, params=None):
+    cur = await db.execute(sql, params or [])
+    rows = await cur.fetchall()
+    await cur.close()
+    return rows
 
-    anomalia_duracion = Column(Integer)  # 0/1
-    duracion_min = Column(Integer)
-    duracion_esperada_min = Column(Float)
-    delta_duracion_pct = Column(Float)
+async def table_columns(table: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        rows = await fetchall(db, f"PRAGMA table_info({table})")
+        return [r["name"] for r in rows]
 
-    setpoint = Column(Float)
-    T0 = Column(Float)
-    pct_transitorio = Column(Float)
-    t_trans_min = Column(Float)
-    overshoot_pct = Column(Float)
+def build_where(filters):
+    where = []
+    params = []
+    for col, op, val in filters:
+        if val is None:
+            continue
+        where.append(f"{col} {op} ?")
+        params.append(val)
+    where_sql = (" WHERE " + " AND ".join(where)) if where else ""
+    return where_sql, params
 
-    mediciones = relationship("Medicion", back_populates="proceso")
-
-
-class Medicion(Base):
-    __tablename__ = "mediciones"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    proceso_id = Column(Integer, ForeignKey("procesos.proceso_id"), index=True, nullable=False)
-    tiempo_min = Column(Integer, nullable=False)
-    temperatura = Column(Float, nullable=False)
-
-    proceso = relationship("Proceso", back_populates="mediciones")
-
-
-engine = create_async_engine(DATABASE_URL, echo=False, future=True)
-SessionLocal = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
-
-app = FastAPI(title="API Procesos (SQLite)", version="1.0")
-
-
+# -------------------------
+# Startup: leer columnas reales
+# -------------------------
 @app.on_event("startup")
 async def startup():
-    # No creamos tablas porque ya existen en tu DB.
-    # Activamos WAL para mejores lecturas concurrentes.
-    async with engine.begin() as conn:
-        await conn.execute(text("PRAGMA journal_mode=WAL;"))
-        await conn.execute(text("PRAGMA synchronous=NORMAL;"))
+    global PROCESOS_COLS, MEDICIONES_COLS
 
+    PROCESOS_COLS = await table_columns("procesos")
+    MEDICIONES_COLS = await table_columns("mediciones")
 
-def proceso_to_dict(p: Proceso):
-    return {
-        "proceso_id": p.proceso_id,
-        "epoca": p.epoca,
-        "packing": p.packing,
-        "tunel": p.tunel,
-        "tipo_tunel": p.tipo_tunel,
-        "iteracion": p.iteracion,
-        "mass_group": p.mass_group,
-        "masa_ton": p.masa_ton,
-        "ocupabilidad": p.ocupabilidad,
-        "caudal_factor": p.caudal_factor,
-        "anomalia_duracion": bool(p.anomalia_duracion),
-        "duracion_min": p.duracion_min,
-        "duracion_esperada_min": p.duracion_esperada_min,
-        "delta_duracion_pct": p.delta_duracion_pct,
-        "setpoint": p.setpoint,
-        "T0": p.T0,
-        "pct_transitorio": p.pct_transitorio,
-        "t_trans_min": p.t_trans_min,
-        "overshoot_pct": p.overshoot_pct,
-    }
+    for t in list(CATALOGS.keys()):
+        try:
+            CATALOGS[t] = await table_columns(t)
+        except Exception:
+            CATALOGS[t] = []
 
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
+        await db.commit()
 
+# -------------------------
+# Endpoints
+# -------------------------
 @app.get("/health")
 async def health():
-    return {"ok": True, "db": DB_PATH}
+    return {
+        "ok": True,
+        "db": DB_PATH,
+        "procesos_cols": PROCESOS_COLS,
+        "mediciones_cols": MEDICIONES_COLS,
+    }
 
+@app.get("/catalog/{name}")
+async def catalog(name: str):
+    if name not in CATALOGS or not CATALOGS[name]:
+        raise HTTPException(404, detail=f"Catálogo '{name}' no existe en la DB")
 
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        rows = await fetchall(db, f"SELECT * FROM {name}")
+        return [dict(r) for r in rows]
+
+# -------------------------
+# Procesos (lista) - filtro simple por fechas
+# -------------------------
 @app.get("/procesos")
 async def listar_procesos(
-    epoca: Optional[str] = None,
-    packing: Optional[str] = None,
-    tunel: Optional[str] = None,
-    tipo_tunel: Optional[str] = None,
-    mass_group: Optional[str] = None,
-    anomalia: Optional[bool] = None,
-
-    masa_min: Optional[float] = None,
-    masa_max: Optional[float] = None,
-
-    dur_min: Optional[int] = None,
-    dur_max: Optional[int] = None,
-
+    started_from: Optional[str] = None,  # "2025-05-01 00:00:00"
+    started_to: Optional[str] = None,    # "2025-05-31 23:59:59"
+    temporada_anio: Optional[int] = 2025,
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ):
-    async with SessionLocal() as db:
-        filters = []
+    def col_exists(c): return c in PROCESOS_COLS
 
-        if epoca: filters.append(Proceso.epoca == epoca)
-        if packing: filters.append(Proceso.packing == packing)
-        if tunel: filters.append(Proceso.tunel == tunel)
-        if tipo_tunel: filters.append(Proceso.tipo_tunel == tipo_tunel)
-        if mass_group: filters.append(Proceso.mass_group == mass_group)
+    filters = []
+    if temporada_anio is not None and col_exists("temporada_anio"):
+        filters.append(("temporada_anio", "=", temporada_anio))
 
-        if anomalia is not None:
-            filters.append(Proceso.anomalia_duracion == (1 if anomalia else 0))
+    # fechas
+    if started_from and col_exists("started_at"):
+        filters.append(("started_at", ">=", started_from))
+    if started_to and col_exists("started_at"):
+        filters.append(("started_at", "<=", started_to))
 
-        if masa_min is not None: filters.append(Proceso.masa_ton >= masa_min)
-        if masa_max is not None: filters.append(Proceso.masa_ton <= masa_max)
+    where_sql, params = build_where(filters)
 
-        if dur_min is not None: filters.append(Proceso.duracion_min >= dur_min)
-        if dur_max is not None: filters.append(Proceso.duracion_min <= dur_max)
+    cols_sql = ", ".join([f'"{c}"' for c in PROCESOS_COLS])  # comillas por T0, etc.
+    sql_items = f"""
+        SELECT {cols_sql}
+        FROM procesos
+        {where_sql}
+        ORDER BY proceso_id DESC
+        LIMIT ? OFFSET ?
+    """
+    sql_total = f"SELECT COUNT(*) as total FROM procesos {where_sql}"
 
-        # Total (para paginación)
-        total_stmt = select(func.count()).select_from(Proceso).where(*filters)
-        total = (await db.execute(total_stmt)).scalar_one()
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
 
-        stmt = (
-            select(Proceso)
-            .where(*filters)
-            .order_by(Proceso.proceso_id.desc())
-            .limit(limit)
-            .offset(offset)
-        )
-        rows = (await db.execute(stmt)).scalars().all()
+        total_row = await fetchone(db, sql_total, params)
+        total = int(total_row["total"]) if total_row else 0
+
+        rows = await fetchall(db, sql_items, params + [limit, offset])
 
         return {
             "total": total,
             "limit": limit,
             "offset": offset,
-            "items": [proceso_to_dict(p) for p in rows],
+            "items": [dict(r) for r in rows]
         }
 
-
+# -------------------------
+# Proceso (detalle metadata)
+# -------------------------
 @app.get("/procesos/{proceso_id}")
-async def obtener_proceso(proceso_id: int):
-    async with SessionLocal() as db:
-        p = (await db.execute(select(Proceso).where(Proceso.proceso_id == proceso_id))).scalar_one_or_none()
-        if not p:
-            raise HTTPException(status_code=404, detail="Proceso no encontrado")
-        return proceso_to_dict(p)
+async def get_proceso(proceso_id: int):
+    cols_sql = ", ".join([f'"{c}"' for c in PROCESOS_COLS])
+    sql = f"SELECT {cols_sql} FROM procesos WHERE proceso_id = ?"
 
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        row = await fetchone(db, sql, [proceso_id])
+        if not row:
+            raise HTTPException(404, detail="Proceso no encontrado")
+        return dict(row)
 
+# -------------------------
+# Métricas por proceso (de mediciones)
+# -------------------------
+@app.get("/procesos/{proceso_id}/metricas")
+async def metricas_proceso(proceso_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+
+        exists = await fetchone(db, "SELECT 1 FROM procesos WHERE proceso_id = ? LIMIT 1", [proceso_id])
+        if not exists:
+            raise HTTPException(404, detail="Proceso no encontrado")
+
+        # métricas básicas de la serie
+        row = await fetchone(db, """
+            SELECT
+                COUNT(*) as n,
+                MIN(temperatura) as temp_min,
+                MAX(temperatura) as temp_max,
+                AVG(temperatura) as temp_avg,
+                MIN(tiempo_min) as t_min,
+                MAX(tiempo_min) as t_max
+            FROM mediciones
+            WHERE proceso_id = ?
+        """, [proceso_id])
+
+        if not row or row["n"] == 0:
+            return {"proceso_id": proceso_id, "n": 0}
+
+        # duración en minutos desde serie (t_max - t_min)
+        dur_serie = int(row["t_max"] - row["t_min"]) if row["t_max"] is not None else None
+
+        return {
+            "proceso_id": proceso_id,
+            "n": int(row["n"]),
+            "temp_min": float(row["temp_min"]) if row["temp_min"] is not None else None,
+            "temp_max": float(row["temp_max"]) if row["temp_max"] is not None else None,
+            "temp_avg": float(row["temp_avg"]) if row["temp_avg"] is not None else None,
+            "t_min": int(row["t_min"]) if row["t_min"] is not None else None,
+            "t_max": int(row["t_max"]) if row["t_max"] is not None else None,
+            "duracion_min_aprox": dur_serie
+        }
+
+# -------------------------
+# Serie de tiempo
+# -------------------------
 @app.get("/procesos/{proceso_id}/serie")
-async def serie_tiempo(
+async def get_serie(
     proceso_id: int,
-    # opcional: recortar ventana
     t_min: int = Query(0, ge=0),
     t_max: Optional[int] = None,
-    # opcional: downsample (cada N puntos)
     step: int = Query(1, ge=1, le=60),
 ):
-    async with SessionLocal() as db:
-        # validar proceso existe
-        exists = (await db.execute(select(func.count()).select_from(Proceso).where(Proceso.proceso_id == proceso_id))).scalar_one()
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+
+        exists = await fetchone(db, "SELECT 1 FROM procesos WHERE proceso_id = ? LIMIT 1", [proceso_id])
         if not exists:
-            raise HTTPException(status_code=404, detail="Proceso no encontrado")
+            raise HTTPException(404, detail="Proceso no encontrado")
 
-        filters = [Medicion.proceso_id == proceso_id, Medicion.tiempo_min >= t_min]
+        filters = [("proceso_id", "=", proceso_id), ("tiempo_min", ">=", t_min)]
         if t_max is not None:
-            filters.append(Medicion.tiempo_min <= t_max)
+            filters.append(("tiempo_min", "<=", t_max))
 
-        stmt = (
-            select(Medicion.tiempo_min, Medicion.temperatura)
-            .where(*filters)
-            .order_by(Medicion.tiempo_min.asc())
-        )
+        where_sql, params = build_where(filters)
 
-        rows = (await db.execute(stmt)).all()
-
-        # downsample simple
+        sql = f"""
+            SELECT tiempo_min, temperatura
+            FROM mediciones
+            {where_sql}
+            ORDER BY tiempo_min ASC
+        """
+        rows = await fetchall(db, sql, params)
+        out = [dict(r) for r in rows]
         if step > 1:
-            rows = rows[::step]
+            out = out[::step]
+        return out
 
-        return [{"tiempo_min": int(t), "temperatura": float(temp)} for (t, temp) in rows]
-
-
+# -------------------------
+# Resumen global (como antes, simple)
+# -------------------------
 @app.get("/stats/resumen")
-async def resumen_global(
-    group_by: str = Query("mass_group", pattern="^(mass_group|tunel|epoca|packing|tipo_tunel)$")
+async def stats_resumen(
+    group_by: str = Query("epoca")
 ):
-    """
-    Resumen agregado para análisis rápido.
-    """
-    async with SessionLocal() as db:
-        col = getattr(Proceso, group_by)
+    allowed = set(PROCESOS_COLS) | {"mes"}
+    if group_by not in allowed:
+        raise HTTPException(400, detail=f"group_by inválido. Opciones: {sorted(list(allowed))}")
 
-        stmt = (
-            select(
-                col.label("group"),
-                func.count().label("n"),
-                func.avg(Proceso.masa_ton).label("masa_ton_avg"),
-                func.avg(Proceso.duracion_min).label("duracion_min_avg"),
-                func.avg(Proceso.delta_duracion_pct).label("delta_pct_avg"),
-                func.sum(Proceso.anomalia_duracion).label("anomalias")
-            )
-            .group_by(col)
-            .order_by(col.asc())
-        )
+    if group_by == "mes":
+        if "started_at" not in PROCESOS_COLS:
+            raise HTTPException(400, detail="No existe started_at para agrupar por mes")
+        group_expr = "substr(started_at, 1, 7)"  # YYYY-MM
+    else:
+        group_expr = f'"{group_by}"'
 
-        rows = (await db.execute(stmt)).all()
-        return [
-            {
-                "group": r.group,
-                "n": int(r.n),
-                "masa_ton_avg": float(r.masa_ton_avg) if r.masa_ton_avg is not None else None,
-                "duracion_min_avg": float(r.duracion_min_avg) if r.duracion_min_avg is not None else None,
-                "delta_pct_avg": float(r.delta_pct_avg) if r.delta_pct_avg is not None else None,
-                "anomalias": int(r.anomalias) if r.anomalias is not None else 0
-            }
-            for r in rows
-        ]
+    masa_col = "masa_total_ton" if "masa_total_ton" in PROCESOS_COLS else None
+    dur_col = "duracion_min" if "duracion_min" in PROCESOS_COLS else None
+    delta_col = "delta_duracion_pct" if "delta_duracion_pct" in PROCESOS_COLS else None
+    anom_col = "anomalia_duracion" if "anomalia_duracion" in PROCESOS_COLS else None
+
+    select_parts = [f"{group_expr} as grupo", "COUNT(*) as n"]
+    if masa_col: select_parts.append(f"AVG({masa_col}) as masa_ton_avg")
+    if dur_col: select_parts.append(f"AVG({dur_col}) as duracion_min_avg")
+    if delta_col: select_parts.append(f"AVG({delta_col}) as delta_pct_avg")
+    if anom_col: select_parts.append(f"SUM({anom_col}) as anomalias")
+
+    sql = f"""
+        SELECT {", ".join(select_parts)}
+        FROM procesos
+        GROUP BY {group_expr}
+        ORDER BY {group_expr} ASC
+    """
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        rows = await fetchall(db, sql)
+        return [dict(r) for r in rows]
