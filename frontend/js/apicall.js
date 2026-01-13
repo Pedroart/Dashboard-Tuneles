@@ -1,5 +1,7 @@
 const API_BASE = "http://127.0.0.1:8000";
 
+let dataProcesos = []
+
 async function fetchJSON(url) {
   const response = await fetch(url);
   if (!response.ok) {
@@ -7,7 +9,6 @@ async function fetchJSON(url) {
   }
   return await response.json();
 }
-
 
 async function getProcesos({
   started_from = null,
@@ -89,4 +90,19 @@ async function getVariedades({
     return [];
   }
 }
->>>>>>> 2313bf9c4925d14e2d7f33ed136a2d1f349a0bd6
+
+
+async function wraperGetProcesos({
+  started_from = null,
+  started_to = null,
+  temporada_anio = null,
+  packing_id = null,
+  epoca = null,
+  limit = 50,
+  offset = 0
+} = {}) {
+
+  const result = await getProcesos(started_from,started_to,temporada_anio,packing_id,epoca,limit,offset);
+  
+  
+}
