@@ -103,7 +103,7 @@ document.getElementById('temporada').addEventListener('change', async function()
   M.FormSelect.init(document.querySelectorAll('select'));
 });
 
-function cargarDatos() {
+async function cargarDatos() {
   const packing = document.getElementById('packing').value;
   const temporada = document.getElementById('temporada').value;
   const fruta = document.getElementById('fruta').value;
@@ -113,10 +113,13 @@ function cargarDatos() {
     return;
   }
   
-  getDataTuneles(packing, temporada, fruta).then(data => {
-    if (data) {
-      console.log(`Total de procesos: ${data.total}`);
-      console.log(`Procesos obtenidos: ${data.items.length}`);
-    }
-  });
+  const dataCount =  await wraperGetProcesos({
+    packing_id: packing ? Number(packing) : null,
+    temporada_anio: temporada ? Number(temporada) : null,
+    epoca: fruta,
+    limit: 50,
+    offset: 0
+  })
+
+  console.log(dataCount)
 }

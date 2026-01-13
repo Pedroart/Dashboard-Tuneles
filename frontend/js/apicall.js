@@ -16,7 +16,7 @@ async function getProcesos({
   temporada_anio = null,
   packing_id = null,
   epoca = null,
-  limit = 50,
+  limit = 500,
   offset = 0
 } = {}) {
 
@@ -93,16 +93,17 @@ async function getFrutas(packing, temporada){
 
 
 async function wraperGetProcesos({
+  packing_id = null,
   started_from = null,
   started_to = null,
   temporada_anio = null,
-  packing_id = null,
   epoca = null,
-  limit = 50,
+  limit = 500,
   offset = 0
 } = {}) {
 
-  const result = await getProcesos(started_from,started_to,temporada_anio,packing_id,epoca,limit,offset);
+  const result = await getProcesos(temporada_anio,packing_id,epoca,limit,offset);
   
+  return result["total"]
   
 }
