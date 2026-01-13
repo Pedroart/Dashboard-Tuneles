@@ -1,10 +1,19 @@
 from fastapi import FastAPI, Query, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 import aiosqlite
 
 DB_PATH = "datos_2025.db"  # <-- cambia si tu db se llama distinto
 
 app = FastAPI(title="API Procesos (SQLite) - RAW", version="3.1")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 PROCESOS_COLS = []
 MEDICIONES_COLS = []
