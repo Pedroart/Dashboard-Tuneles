@@ -507,6 +507,7 @@ function renderPaletsPorDiaDummy() {
             color: UI.legendText,
             padding: 15,
             boxWidth: 40,
+            filter: (item) => item.text === "Palets por día",
           },
         },
         tooltip: {
@@ -541,9 +542,10 @@ function renderPaletsPorDiaDummy() {
 
               return [
                 `Palets del día: ${actual}`,
+                `Promedio: ${promedio.toFixed(0)}`,
                 `───────────────`,
                 `vs Día anterior: ${variacionDiaAnterior}`,
-                `vs Promedio (${promedio.toFixed(0)}): ${signo}${diferencia.toFixed(0)} (${signo}${pct}%)`,
+                `vs Promedio: ${signo}${diferencia.toFixed(0)} (${signo}${pct}%)`,
                 `Estado: ${diferencia >= 0 ? '↑ Por encima' : '↓ Por debajo'}`,
               ];
             },
@@ -845,7 +847,7 @@ function renderTiempoTunelMinMaxPromDummy() {
           pointRadius: 4,
           pointHoverRadius: 5,
           pointBackgroundColor: "rgba(54,162,235,0.95)",
-          pointBorderColor: "rgba(255,255,255,0.9)",
+          pointBorderColor: "rgba(255,255,255,0.08)",
           pointBorderWidth: 1
         },
         {
@@ -856,7 +858,7 @@ function renderTiempoTunelMinMaxPromDummy() {
           pointRadius: 4,
           pointHoverRadius: 5,
           pointBackgroundColor: "rgba(75,192,192,0.95)",
-          pointBorderColor: "rgba(255,255,255,0.9)",
+          pointBorderColor: "rgba(255,255,255,0.08)",
           pointBorderWidth: 1
         }
       ]
@@ -865,6 +867,7 @@ function renderTiempoTunelMinMaxPromDummy() {
       responsive: true,
       maintainAspectRatio: false,
       animation: false,
+      devicePixelRatio: 2,
       plugins: {
         legend: {
           display: true,
@@ -1288,6 +1291,7 @@ function renderPaletsPorDiaSolidDummy() {
             color: UI.legendText,
             padding: 15,
             boxWidth: 40,
+            filter: (item) => item.text === "Palets por día",
           },
         },
         tooltip: {
@@ -1315,6 +1319,7 @@ function renderPaletsPorDiaSolidDummy() {
 
               return [
                 `Palets del día: ${bar.actual}`,
+                `Promedio: ${promedio.toFixed(0)}`,
                 `───────────────`,
                 `Valor ${diaRef}: ${bar.anterior.toFixed(0)}`,
                 `Variación: ${signo}${bar.variacion.toFixed(0)} (${signo}${bar.variacionPct.toFixed(1)}%) ${bar.isPositive ? '↑' : '↓'}`,
@@ -1558,6 +1563,7 @@ function renderPaletsPorDiaDashedDummy() {
             color: UI.legendText,
             padding: 15,
             boxWidth: 40,
+            filter: (item) => item.text === "Palets por día",
           },
         },
         tooltip: {
@@ -1585,6 +1591,7 @@ function renderPaletsPorDiaDashedDummy() {
 
               return [
                 `Palets del día: ${bar.actual}`,
+                `Promedio: ${promedio.toFixed(0)}`,
                 `───────────────`,
                 `Valor ${diaRef}: ${bar.anterior.toFixed(0)}`,
                 `Variación: ${signo}${bar.variacion.toFixed(0)} (${signo}${bar.variacionPct.toFixed(1)}%) ${bar.isPositive ? '↑' : '↓'}`,

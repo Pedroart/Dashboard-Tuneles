@@ -4,35 +4,75 @@
 
 /* Variables CSS globales para colores y espaciado */
 :root{
-  --bg: #0b1220;
-  --panel: #0f1b2d;
-  --panel-2: #0c1626;
-  --card: rgba(255,255,255,0.04);
-  --card-2: rgba(255,255,255,0.06);
-  --border: rgba(255,255,255,0.08);
-  --text: rgba(255,255,255,0.88);
-  --muted: rgba(255,255,255,0.60);
-  --shadow: 0 10px 30px rgba(0,0,0,.35);
-  --radius: 14px;
+  --bg: #18191d;
+  --panel: #1c1d22;
+  --panel-2: #1f1f22;
+  --card: #1c1d22;
+  --card-2: #1c1d22;
+  --border: transparent;
+  --text: #f4f4f5;
+  --muted: #a1a1aa;
+  --primary: #ef4444;
+  --radius: 5px;
   --gap: 12px;
 }
 
-/* Estilos base del documento */
-html, body{
+/* Reset y Base */
+*, *:before, *:after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  font-size: 14px;
+  line-height: 1.5;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  font-weight: normal;
+  color: var(--text);
+  background: var(--bg);
+  -ms-text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
+@media only screen and (min-width: 992px) {
+  html { font-size: 14.5px; }
+}
+
+@media only screen and (min-width: 1200px) {
+  html { font-size: 15px; }
+}
+
+body {
   height: 100%;
   margin: 0;
-  background: radial-gradient(1200px 800px at 20% 0%, rgba(33,150,243,0.12), transparent 55%),
-              radial-gradient(900px 700px at 90% 10%, rgba(156,39,176,0.10), transparent 60%),
-              var(--bg);
+  background: var(--bg);
   color: var(--text);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+/* Sistema de filas (Materialize) */
+.row {
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 20px;
+}
+
+.row:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+.reports .row,
+.sidebar .row {
+  margin-bottom: 6px;
 }
 
 /* Barra de navegación superior */
 nav.blue.darken-2{
-  background: rgba(8, 14, 26, 0.85) !important;
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--border);
+  background: #1a1d24 !important;
+  border-bottom: none;
 }
 
 nav .brand-logo{
@@ -50,8 +90,8 @@ nav .brand-logo{
 /* Barra lateral de filtros */
 .sidebar{
   padding: 16px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
-  border-right: 1px solid var(--border);
+  background: var(--panel);
+  border-right: none;
 }
 
 .sidebar h6{
@@ -67,15 +107,16 @@ nav .brand-logo{
 /* Botón de búsqueda en sidebar */
 .sidebar .btn{
   width: 100%;
-  border-radius: 12px;
-  background: rgba(33,150,243,0.20) !important;
-  border: 1px solid rgba(33,150,243,0.35);
+  border-radius: 5px;
+  background: linear-gradient(90deg, #2e60c4 5%, rgba(23, 15, 103, 0.05) 60%) !important;
+  border: none;
   box-shadow: none;
   text-transform: none;
   font-weight: 600;
 }
 .sidebar .btn:hover{
-  background: rgba(33,150,243,0.28) !important;
+  background: linear-gradient(90deg, #2e60c4 5%, rgba(23, 15, 103, 0.05) 60%) !important;
+  opacity: 0.9;
 }
 
 /* Área principal del dashboard con grid de 12 columnas */
@@ -91,17 +132,14 @@ nav .brand-logo{
 /* Tarjetas de widgets (KPIs, gráficas, tablas) */
 .widget.card{
   border-radius: var(--radius);
-  background: linear-gradient(180deg, var(--card), var(--card-2));
-  border: 1px solid var(--border);
-  box-shadow: none;          /* minimal */
+  background: var(--card);
+  box-shadow: none;
   padding: 14px;
   color: var(--text);
-  transition: transform .15s ease, border-color .15s ease, background .15s ease;
+  transition: border-color .15s ease;
 }
 .widget.card:hover{
-  transform: translateY(-2px);
-  border-color: rgba(255,255,255,0.14);
-  background: linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.03));
+  border-color: #3f3f46;
 }
 
 /* Eliminar sombras de Materialize CSS */
@@ -116,17 +154,17 @@ nav .brand-logo{
 
 .input-field input[type=text]{
   color: var(--text) !important;
-  border-bottom: 1px solid rgba(255,255,255,0.18) !important;
+  border-bottom: none !important;
 }
 .input-field input[type=text]:focus{
-  border-bottom: 1px solid rgba(33,150,243,0.65) !important;
-  box-shadow: 0 1px 0 0 rgba(33,150,243,0.65) !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
 }
 
 /* Selectores desplegables */
 .select-wrapper input.select-dropdown{
   color: var(--text) !important;
-  border-bottom: 1px solid rgba(255,255,255,0.18) !important;
+  border-bottom: none !important;
 }
 .select-wrapper .caret{
   fill: rgba(255,255,255,0.6) !important;
@@ -134,10 +172,10 @@ nav .brand-logo{
 
 /* Lista desplegable de opciones */
 .dropdown-content{
-  background: rgba(15, 27, 45, 0.98) !important;
+  background: var(--panel) !important;
   border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: var(--shadow);
+  border-radius: 5px;
+  box-shadow: none;
   overflow: hidden;
 }
 .dropdown-content li > a,
@@ -145,7 +183,7 @@ nav .brand-logo{
   color: var(--text) !important;
 }
 .dropdown-content li:hover{
-  background: rgba(255,255,255,0.06) !important;
+  background: var(--panel-2) !important;
 }
 
 /* Barra de desplazamiento personalizada */
@@ -154,7 +192,7 @@ nav .brand-logo{
   width: 10px;
 }
 *::-webkit-scrollbar-thumb{
-  background: rgba(255,255,255,0.10);
+  background: #3f3f46;
   border-radius: 999px;
 }
 *::-webkit-scrollbar-track{
@@ -162,34 +200,22 @@ nav .brand-logo{
 }
 
 /* Posicionamiento en grid de widgets */
-/* Fila 1: 4 KPIs (3 columnas cada uno) */
 .widget:nth-child(1){ grid-column: span 4; height: 100%; }
 .widget:nth-child(2){ grid-column: span 4; height: 100%; }
 .widget:nth-child(3){ grid-column: span 4; height: 100%; }
-.widget:nth-child(4){ grid-column: span 6; min-height: 380px; }
-
-/* Filas 2-4: 6 gráficas (6 columnas cada una, 2 por fila) */
-.widget:nth-child(5){ grid-column: span 6; min-height: 380px; }
-.widget:nth-child(6){ grid-column: span 6; min-height: 380px; }
-.widget:nth-child(7){ grid-column: span 6; min-height: 380px; }
-.widget:nth-child(8){ grid-column: span 6; min-height: 380px; }
+.widget:nth-child(4){ grid-column: span 6; grid-row-start: 2; grid-row-end: 4; max-height: 820px; }
+.widget:nth-child(5){ grid-row-start: 2; grid-column-start: 7; grid-column-end: 13; min-height: 350px; max-height: 400px; }
+.widget:nth-child(6){ grid-row-start: 3; grid-column-start: 7; grid-column-end: 13; min-height: 350px; max-height: 400px; }
+.widget:nth-child(7){ grid-column: span 12; min-height: 380px; max-height: 650px; }
+.widget:nth-child(8){ grid-column: span 12 ; min-height: 380px; }
 .widget:nth-child(9){ grid-column: span 6; min-height: 380px; }
 .widget:nth-child(10){ grid-column: span 12; height: 100%; }
-
-/* Fila 5: Resumen Ejecutivo (ancho completo) */
 .widget:nth-child(11){ grid-column: span 12; }
-
-/* Fila 6: Tabla de datos operativos (ancho completo) */
 .widget:nth-child(12){ grid-column: span 12; }
 
-
 /* ===== Tarjetas KPI ===== */
+.widget.card { margin: 0; }
 
-.widget.card {
-  margin: 0;
-}
-
-/* Contenedor de KPI */
 .kpi{
   display: flex;
   flex-direction: column;
@@ -198,7 +224,6 @@ nav .brand-logo{
   overflow: hidden;
 }
 
-/* Sección superior del KPI (título + badge) */
 .kpi-top{
   display: flex;
   justify-content: space-between;
@@ -206,15 +231,13 @@ nav .brand-logo{
   gap: 12px;
 }
 
-/* Título del KPI */
 .kpi-title{
   font-size: 12px;
   letter-spacing: .6px;
   text-transform: uppercase;
-  color: rgba(255,255,255,.62);
+  color: var(--muted);
 }
 
-/* Valor principal del KPI */
 .kpi-value{
   font-size: 42px;
   line-height: 1.05;
@@ -223,48 +246,43 @@ nav .brand-logo{
   margin-top: 6px;
 }
 
-/* Unidad de medida del KPI */
 .kpi-unit{
   font-size: 12px;
   font-weight: 650;
-  color: rgba(255,255,255,.70);
+  color: var(--muted);
   margin-left: 6px;
 }
 
-/* Badge informativo del KPI */
 .kpi-badge{
   font-size: 12px;
   padding: 6px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.05);
-  color: rgba(255,255,255,.80);
+  border-radius: 5px;
+  border: none;
+  background: #9ca3af1a;
+  color: #9ca3af;
   white-space: nowrap;
 }
 
 .kpi-badge.danger{
-  border-color: rgba(244,67,54,.35);
-  background: rgba(244,67,54,.14);
+  background: #ef44441a;
+  color: var(--primary);
 }
 
-/* Grid de sub-métricas del KPI */
 .kpi-subgrid{
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
 
-/* Tarjeta de sub-métrica */
 .kpi-sub{
   padding: 3px 5px;
-  border-radius: 7px;
-  border: 1px solid rgba(255,255,255,.08);
-  background: rgba(255,255,255,.03);
+  border-radius: 5px;
+  background: var(--panel-2);
 }
 
 .kpi-sub-label{
   font-size: 12px;
-  color: rgba(255,255,255,.62);
+  color: var(--muted);
 }
 
 .kpi-sub-value{
@@ -273,49 +291,43 @@ nav .brand-logo{
   margin-top: 4px;
 }
 
-/* Línea divisoria en KPI */
 .kpi-divider{
   height: 1px;
-  background: rgba(255,255,255,.08);
   margin: 2px 0;
 }
 
 .kpi-section-title{
   font-size: 12px;
-  color: rgba(255,255,255,.62);
+  color: var(--muted);
   margin-top: 2px;
 }
 
-/* Contenedor de chips (túneles con fallas) */
 .kpi-chips{
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-/* Chip individual */
 .chip-dark{
   display: inline-flex;
   align-items: center;
   gap: 2px;
   padding: 2px 1px 2px 6px;
   border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.04);
-  color: rgba(255,255,255,.84);
+  background: var(--panel-2);
+  color: var(--text);
   font-size: 13px;
 }
 
 .chip-dark span{
   padding: 2px 8px;
   border-radius: 999px;
-  background: rgba(255,255,255,.07);
-  border: 1px solid rgba(255,255,255,.08);
+  background: var(--border);
+  border: none;
   font-weight: 700;
   font-size: 12px;
 }
 
-/* Mini tabla compacta dentro de KPI */
 .kpi-mini-table{
   display: flex;
   flex-direction: column;
@@ -328,51 +340,46 @@ nav .brand-logo{
   align-items: center;
   gap: 10px;
   padding: 8px 10px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,.08);
-  background: rgba(255,255,255,.03);
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--panel-2);
 }
 
 .kpi-mini-table .k{
-  color: rgba(255,255,255,.72);
+  color: var(--muted);
   font-size: 13px;
 }
 
 .kpi-mini-table .v{
   font-weight: 750;
-  color: rgba(255,255,255,.88);
+  color: var(--text);
   font-variant-numeric: tabular-nums;
 }
 
-
 /* ==== Contenedor de gráficas Chart.js ==== */
-
-/* Tarjeta de gráfica */
 .widget.card.chart-card{
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 14px;            /* ajusta si quieres */
+  padding: 14px;
   box-sizing: border-box;
 }
 
-/* Área del canvas de la gráfica */
 .widget.card.chart-card .kpi-chart{
   flex: 1 1 auto;
   position: relative;
-  min-height: 0;            /* IMPORTANTÍSIMO para que no se rompa en flex */
+  min-height: 0;
 }
 
-/* Canvas responsive */
 .widget.card.chart-card .kpi-chart canvas{
   width: 100% !important;
   height: 100% !important;
   display: block;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 /* ==== Medidor líquido de ocupabilidad ==== */
-
-/* Contenedor principal del gauge */
 .liquid-gauge-container {
   display: flex;
   flex-direction: column;
@@ -381,7 +388,6 @@ nav .brand-logo{
   padding: 10px;
 }
 
-/* Selector de túnel para el gauge */
 .gauge-selector {
   display: flex;
   align-items: center;
@@ -395,13 +401,12 @@ nav .brand-logo{
   white-space: nowrap;
 }
 
-/* Dropdown del selector */
 .gauge-selector select {
   flex: 1;
   padding: 8px 12px;
   background: rgba(255,255,255,0.06);
   border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 8px;
+  border-radius: 5px;
   color: var(--text);
   font-size: 14px;
   cursor: pointer;
@@ -553,9 +558,7 @@ nav .brand-logo{
   font-variant-numeric: tabular-nums;
 }
 
-
 /* ==== Resumen Ejecutivo ==== */
-
 .executive-summary {
   display: flex;
   flex-direction: column;
@@ -587,7 +590,7 @@ nav .brand-logo{
   color: rgba(255,255,255,0.5);
   padding: 4px 10px;
   background: rgba(255,255,255,0.05);
-  border-radius: 6px;
+  border-radius: 5px;
   border: 1px solid rgba(255,255,255,0.08);
 }
 
@@ -652,7 +655,6 @@ nav .brand-logo{
   color: rgba(255,255,255,0.5);
 }
 
-/* Anillo de progreso circular */
 .metric-progress {
   position: relative;
   width: 80px;
@@ -691,7 +693,6 @@ nav .brand-logo{
   color: rgba(255,255,255,0.95);
 }
 
-/* Indicador de estado operativo */
 .metric-status {
   display: flex;
   align-items: center;
@@ -758,16 +759,13 @@ nav .brand-logo{
   100% { transform: scale(1.5); opacity: 0; }
 }
 
-/* Responsive: 2 columnas en pantallas medianas */
 @media (max-width: 1400px) {
-.exec-grid {
+  .exec-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-
 /* ==== Tabla de Datos Operativos ==== */
-
 .data-table-card {
   display: flex;
   flex-direction: column;
@@ -780,7 +778,6 @@ nav .brand-logo{
   justify-content: space-between;
   align-items: center;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 
 .table-title {
@@ -795,12 +792,11 @@ nav .brand-logo{
   gap: 8px;
 }
 
-/* Boton de exportacion */
 .table-btn {
   padding: 6px 14px;
   background: rgba(6, 182, 212, 0.15);
   border: 1px solid rgba(6, 182, 212, 0.3);
-  border-radius: 8px;
+  border-radius: 5px;
   color: #06b6d4;
   font-size: 12px;
   font-weight: 600;
@@ -814,14 +810,11 @@ nav .brand-logo{
   transform: translateY(-1px);
 }
 
-/* Contenedor scrollable de la tabla */
 .table-container {
   overflow-x: auto;
   border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.08);
 }
 
-/* Tabla de datos */
 .data-table {
   width: 100%;
   border-collapse: collapse;
@@ -862,7 +855,6 @@ nav .brand-logo{
   text-align: center;
 }
 
-/* Badge de tipo (MP/PT) */
 .table-badge {
   display: inline-block;
   padding: 4px 10px;
@@ -876,19 +868,20 @@ nav .brand-logo{
 .badge-mp {
   background: rgba(54, 162, 235, 0.15);
   color: #36a2eb;
-  border: 1px solid rgba(54, 162, 235, 0.3);
 }
 
 .badge-pt {
   background: rgba(75, 192, 192, 0.15);
   color: #4bc0c0;
-  border: 1px solid rgba(75, 192, 192, 0.3);
 }
 
-/* Indicador de estado con punto de color */
-.table-status { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.table-status { 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  gap: 6px; 
+}
 
-/* Punto de estado */
 .status-dot {
   width: 8px;
   height: 8px;
@@ -910,7 +903,6 @@ nav .brand-logo{
   box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
 }
 
-/* Numeros en celdas */
 .table-number {
   font-weight: 600;
 }
@@ -922,11 +914,3 @@ nav .brand-logo{
 .table-number.negative {
   color: #ef4444;
 }
-
-
-
-
-
-
-
-
