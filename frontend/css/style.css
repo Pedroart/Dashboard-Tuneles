@@ -2,6 +2,7 @@
    Dark + Minimal Dashboard
    ========================= */
 
+/* Variables CSS globales para colores y espaciado */
 :root{
   --bg: #0b1220;
   --panel: #0f1b2d;
@@ -16,7 +17,7 @@
   --gap: 12px;
 }
 
-/* Base */
+/* Estilos base del documento */
 html, body{
   height: 100%;
   margin: 0;
@@ -27,7 +28,7 @@ html, body{
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
 }
 
-/* Navbar */
+/* Barra de navegación superior */
 nav.blue.darken-2{
   background: rgba(8, 14, 26, 0.85) !important;
   backdrop-filter: blur(10px);
@@ -39,14 +40,14 @@ nav .brand-logo{
   letter-spacing: .2px;
 }
 
-/* Layout principal */
+/* Contenedor principal: sidebar + dashboard */
 .app-layout{
   display: grid;
   grid-template-columns: 280px 1fr;
   height: calc(100vh - 64px);
 }
 
-/* Sidebar */
+/* Barra lateral de filtros */
 .sidebar{
   padding: 16px;
   background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
@@ -63,7 +64,7 @@ nav .brand-logo{
   margin-bottom: 6px;
 }
 
-/* Botón Buscar minimal */
+/* Botón de búsqueda en sidebar */
 .sidebar .btn{
   width: 100%;
   border-radius: 12px;
@@ -77,7 +78,7 @@ nav .brand-logo{
   background: rgba(33,150,243,0.28) !important;
 }
 
-/* Dashboard area */
+/* Área principal del dashboard con grid de 12 columnas */
 .dashboard-grid{
   display: grid;
   grid-template-columns: repeat(12, 1fr);
@@ -87,7 +88,7 @@ nav .brand-logo{
   background: transparent;
 }
 
-/* Widgets: cards minimalistas */
+/* Tarjetas de widgets (KPIs, gráficas, tablas) */
 .widget.card{
   border-radius: var(--radius);
   background: linear-gradient(180deg, var(--card), var(--card-2));
@@ -103,12 +104,12 @@ nav .brand-logo{
   background: linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.03));
 }
 
-/* Si Materialize te mete sombras por z-depth, neutraliza */
+/* Eliminar sombras de Materialize CSS */
 .z-depth-1, .z-depth-2, .z-depth-3, .z-depth-4, .z-depth-5{
   box-shadow: none !important;
 }
 
-/* Inputs/labels (Materialize) en modo oscuro */
+/* Etiquetas de campos de entrada */
 .input-field label{
   color: var(--muted) !important;
 }
@@ -122,7 +123,7 @@ nav .brand-logo{
   box-shadow: 0 1px 0 0 rgba(33,150,243,0.65) !important;
 }
 
-/* Select (Materialize) */
+/* Selectores desplegables */
 .select-wrapper input.select-dropdown{
   color: var(--text) !important;
   border-bottom: 1px solid rgba(255,255,255,0.18) !important;
@@ -131,7 +132,7 @@ nav .brand-logo{
   fill: rgba(255,255,255,0.6) !important;
 }
 
-/* Dropdown list */
+/* Lista desplegable de opciones */
 .dropdown-content{
   background: rgba(15, 27, 45, 0.98) !important;
   border: 1px solid var(--border);
@@ -147,7 +148,7 @@ nav .brand-logo{
   background: rgba(255,255,255,0.06) !important;
 }
 
-/* Opcional: scrollbar discreta */
+/* Barra de desplazamiento personalizada */
 *::-webkit-scrollbar{
   height: 10px;
   width: 10px;
@@ -160,34 +161,35 @@ nav .brand-logo{
   background: transparent;
 }
 
-/* Grid positioning - Layout proporcionado */
-/* 4 KPIs arriba: cada uno 3 columnas */
-.widget:nth-child(1){ grid-column: span 4; min-height: 180px; }
-.widget:nth-child(2){ grid-column: span 4; min-height: 180px; }
-.widget:nth-child(3){ grid-column: span 4; min-height: 180px; }
+/* Posicionamiento en grid de widgets */
+/* Fila 1: 4 KPIs (3 columnas cada uno) */
+.widget:nth-child(1){ grid-column: span 4; height: 100%; }
+.widget:nth-child(2){ grid-column: span 4; height: 100%; }
+.widget:nth-child(3){ grid-column: span 4; height: 100%; }
 .widget:nth-child(4){ grid-column: span 6; min-height: 380px; }
 
-/* 6 gráficas del medio: 2 columnas, 3 filas (6 columnas cada una) */
-.widget:nth-child(5){ grid-column: span 6; height: 320px; }
-.widget:nth-child(6){ grid-column: span 6; height: 320px; }
-.widget:nth-child(7){ grid-column: span 6; height: 320px; }
-.widget:nth-child(8){ grid-column: span 6; height: 320px; }
-.widget:nth-child(9){ grid-column: span 6; height: 320px; }
-.widget:nth-child(10){ grid-column: span 12; min-height: 220px; }
+/* Filas 2-4: 6 gráficas (6 columnas cada una, 2 por fila) */
+.widget:nth-child(5){ grid-column: span 6; min-height: 380px; }
+.widget:nth-child(6){ grid-column: span 6; min-height: 380px; }
+.widget:nth-child(7){ grid-column: span 6; min-height: 380px; }
+.widget:nth-child(8){ grid-column: span 6; min-height: 380px; }
+.widget:nth-child(9){ grid-column: span 6; min-height: 380px; }
+.widget:nth-child(10){ grid-column: span 12; height: 100%; }
 
-/* Resumen Ejecutivo: ancho completo */
-.widget:nth-child(11){ grid-column: span 12; min-height: 400px; }
+/* Fila 5: Resumen Ejecutivo (ancho completo) */
+.widget:nth-child(11){ grid-column: span 12; }
 
-/* Tabla: ancho completo */
+/* Fila 6: Tabla de datos operativos (ancho completo) */
 .widget:nth-child(12){ grid-column: span 12; }
 
 
-/* ===== KPI Cards ===== */
+/* ===== Tarjetas KPI ===== */
 
 .widget.card {
   margin: 0;
 }
 
+/* Contenedor de KPI */
 .kpi{
   display: flex;
   flex-direction: column;
@@ -196,6 +198,7 @@ nav .brand-logo{
   overflow: hidden;
 }
 
+/* Sección superior del KPI (título + badge) */
 .kpi-top{
   display: flex;
   justify-content: space-between;
@@ -203,6 +206,7 @@ nav .brand-logo{
   gap: 12px;
 }
 
+/* Título del KPI */
 .kpi-title{
   font-size: 12px;
   letter-spacing: .6px;
@@ -210,6 +214,7 @@ nav .brand-logo{
   color: rgba(255,255,255,.62);
 }
 
+/* Valor principal del KPI */
 .kpi-value{
   font-size: 42px;
   line-height: 1.05;
@@ -218,6 +223,7 @@ nav .brand-logo{
   margin-top: 6px;
 }
 
+/* Unidad de medida del KPI */
 .kpi-unit{
   font-size: 12px;
   font-weight: 650;
@@ -225,6 +231,7 @@ nav .brand-logo{
   margin-left: 6px;
 }
 
+/* Badge informativo del KPI */
 .kpi-badge{
   font-size: 12px;
   padding: 6px 10px;
@@ -240,12 +247,14 @@ nav .brand-logo{
   background: rgba(244,67,54,.14);
 }
 
+/* Grid de sub-métricas del KPI */
 .kpi-subgrid{
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
 
+/* Tarjeta de sub-métrica */
 .kpi-sub{
   padding: 3px 5px;
   border-radius: 7px;
@@ -264,6 +273,7 @@ nav .brand-logo{
   margin-top: 4px;
 }
 
+/* Línea divisoria en KPI */
 .kpi-divider{
   height: 1px;
   background: rgba(255,255,255,.08);
@@ -276,13 +286,14 @@ nav .brand-logo{
   margin-top: 2px;
 }
 
-/* Chips minimal */
+/* Contenedor de chips (túneles con fallas) */
 .kpi-chips{
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
+/* Chip individual */
 .chip-dark{
   display: inline-flex;
   align-items: center;
@@ -304,7 +315,7 @@ nav .brand-logo{
   font-size: 12px;
 }
 
-/* Mini table (compact breakdown) */
+/* Mini tabla compacta dentro de KPI */
 .kpi-mini-table{
   display: flex;
   flex-direction: column;
@@ -334,8 +345,9 @@ nav .brand-logo{
 }
 
 
-/* ==== Estilo de Grafica CHART ==== */
+/* ==== Contenedor de gráficas Chart.js ==== */
 
+/* Tarjeta de gráfica */
 .widget.card.chart-card{
   display: flex;
   flex-direction: column;
@@ -344,22 +356,23 @@ nav .brand-logo{
   box-sizing: border-box;
 }
 
-/* Área del chart toma todo el alto disponible */
+/* Área del canvas de la gráfica */
 .widget.card.chart-card .kpi-chart{
   flex: 1 1 auto;
   position: relative;
   min-height: 0;            /* IMPORTANTÍSIMO para que no se rompa en flex */
 }
 
-/* Canvas siempre al 100% */
+/* Canvas responsive */
 .widget.card.chart-card .kpi-chart canvas{
   width: 100% !important;
   height: 100% !important;
   display: block;
 }
 
-/* ==== LIQUID GAUGE STYLES ==== */
+/* ==== Medidor líquido de ocupabilidad ==== */
 
+/* Contenedor principal del gauge */
 .liquid-gauge-container {
   display: flex;
   flex-direction: column;
@@ -368,6 +381,7 @@ nav .brand-logo{
   padding: 10px;
 }
 
+/* Selector de túnel para el gauge */
 .gauge-selector {
   display: flex;
   align-items: center;
@@ -381,6 +395,7 @@ nav .brand-logo{
   white-space: nowrap;
 }
 
+/* Dropdown del selector */
 .gauge-selector select {
   flex: 1;
   padding: 8px 12px;
@@ -539,7 +554,7 @@ nav .brand-logo{
 }
 
 
-/* ==== EXECUTIVE SUMMARY COMPONENT ==== */
+/* ==== Resumen Ejecutivo ==== */
 
 .executive-summary {
   display: flex;
@@ -637,7 +652,7 @@ nav .brand-logo{
   color: rgba(255,255,255,0.5);
 }
 
-/* Progress Ring */
+/* Anillo de progreso circular */
 .metric-progress {
   position: relative;
   width: 80px;
@@ -676,7 +691,7 @@ nav .brand-logo{
   color: rgba(255,255,255,0.95);
 }
 
-/* Status Indicator */
+/* Indicador de estado operativo */
 .metric-status {
   display: flex;
   align-items: center;
@@ -743,15 +758,15 @@ nav .brand-logo{
   100% { transform: scale(1.5); opacity: 0; }
 }
 
-/* Responsive */
+/* Responsive: 2 columnas en pantallas medianas */
 @media (max-width: 1400px) {
-  .exec-grid {
+.exec-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
 
-/* ==== DATA TABLE COMPONENT ==== */
+/* ==== Tabla de Datos Operativos ==== */
 
 .data-table-card {
   display: flex;
@@ -780,6 +795,7 @@ nav .brand-logo{
   gap: 8px;
 }
 
+/* Boton de exportacion */
 .table-btn {
   padding: 6px 14px;
   background: rgba(6, 182, 212, 0.15);
@@ -798,12 +814,14 @@ nav .brand-logo{
   transform: translateY(-1px);
 }
 
+/* Contenedor scrollable de la tabla */
 .table-container {
   overflow-x: auto;
   border-radius: 10px;
   border: 1px solid rgba(255,255,255,0.08);
 }
 
+/* Tabla de datos */
 .data-table {
   width: 100%;
   border-collapse: collapse;
@@ -819,7 +837,7 @@ nav .brand-logo{
 
 .data-table th {
   padding: 12px 16px;
-  text-align: left;
+  text-align: center;
   font-weight: 700;
   font-size: 11px;
   text-transform: uppercase;
@@ -841,8 +859,10 @@ nav .brand-logo{
   padding: 12px 16px;
   color: rgba(255,255,255,0.85);
   font-variant-numeric: tabular-nums;
+  text-align: center;
 }
 
+/* Badge de tipo (MP/PT) */
 .table-badge {
   display: inline-block;
   padding: 4px 10px;
@@ -865,12 +885,10 @@ nav .brand-logo{
   border: 1px solid rgba(75, 192, 192, 0.3);
 }
 
-.table-status {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
+/* Indicador de estado con punto de color */
+.table-status { display: flex; align-items: center; justify-content: center; gap: 6px; }
 
+/* Punto de estado */
 .status-dot {
   width: 8px;
   height: 8px;
@@ -892,6 +910,7 @@ nav .brand-logo{
   box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
 }
 
+/* Numeros en celdas */
 .table-number {
   font-weight: 600;
 }
@@ -903,6 +922,10 @@ nav .brand-logo{
 .table-number.negative {
   color: #ef4444;
 }
+
+
+
+
 
 
 
