@@ -96,70 +96,88 @@ function randFloat(min, max) {
 }
 
 /************************************
- * 3) CHART 1: OCUPABILIDAD (Dummy)
- *    - 1 dataset, coloreado MP/PT
+ * 3) CHART 1: OCUPABILIDAD - LIQUID GAUGE
  ************************************/
-let chartOcupabilidad = null;
+let liquidGaugeData = {};
 
-function renderOcupabilidadDummy() {
-  const el = document.getElementById("chartOcupabilidad");
-  if (!el) return;
-  if (chartOcupabilidad) chartOcupabilidad.destroy();
-
-  // 2 series: MP (T01–T05) y PT (T06–T10)
-  const mpData = tuneles.map((t) =>
-    tipoTunel(t) === "MP" ? randInt(65, 90) : null
-  );
-
-  const ptData = tuneles.map((t) =>
-    tipoTunel(t) === "PT" ? randInt(55, 85) : null
-  );
-
-  chartOcupabilidad = new Chart(el, {
-    type: "bar",
-    data: {
-      labels: tuneles,
-      datasets: [
-        {
-          label: "Materia Prima",
-          data: mpData,
-          backgroundColor: "rgba(54, 162, 235, 0.7)",
-          borderRadius: 4,
-          barThickness: 16,
-        },
-        {
-          label: "Producto Terminado",
-          data: ptData,
-          backgroundColor: "rgba(75, 192, 192, 0.7)",
-          borderRadius: 4,
-          barThickness: 16,
-        },
-      ],
-    },
-    options: {
-      ...baseOptions({
-        xTitle: "Túnel",
-        yTitle: "Ocupabilidad (%)",
-        yMin: 0,
-        yMax: 100,
-        ySuffix: "%",
-      }),
-      plugins: {
-        ...baseOptions().plugins,
-        legend: {
-          display: true,
-          position: "top",
-          labels: { color: UI.legendText },
-        },
-        tooltip: {
-          enabled: true,
-          callbacks: {
-            label: (c) => `${c.dataset.label}: ${c.raw}%`,
-          },
-        },
-      },
-    },
+function initLiquidGaugeData() {
+  tuneles.forEach(t => {
+    const ocupabilidad = tipoTunel(t) === "MP" ? randInt(65, 90) : randInt(55, 85);
+    const capacidad = randInt(45, 60);
+    liquidGaugeData[t] = {
+      ocupabilidad,
+      capacidad,
+      palets: Math.round((ocupabilidad * capacidad) / 100),
+      tipo: tipoTunel(t)
+    };
   });
+}
+
+function getGaugeColor(percent) {
+  if (percent >= 85) return { liquid: '#4ade80', glow: 'rgba(74, 222, 128, 0.4)' }; // Verde - Lleno
+  if (percent >= 75) return { liquid: '#fbbf24', glow: 'rgba(251, 191, 36, 0.4)' }; // Ámbar - Medio
+  return { liquid: '#ef4444', glow: 'rgba(239, 68, 68, 0.4)' }; // Rojo - Vacío
+}
+
+function renderLiquidGauge(tunelId) {
+  const container = document.getElementById('gaugeDisplay');
+  if (!container) return;
+  
+  const data = liquidGaugeData[tunelId];
+  if (!data) return;
+  
+  const colors = getGaugeColor(data.ocupabilidad);
+  const objetivo = 85;
+  const diferencia = (data.ocupabilidad - objetivo).toFixed(1);
+  const signo = diferencia > 0 ? '+' : '';
+  
+  container.innerHTML = `
+    <div class="liquid-tank">
+      <div class="tank-container">
+        <div class="tank-bg"></div>
+        <div class="liquid-fill" style="height: ${data.ocupabilidad}%; background: linear-gradient(180deg, ${colors.liquid} 0%, ${colors.liquid}dd 100%); box-shadow: 0 0 30px ${colors.glow}, inset 0 0 20px rgba(255,255,255,0.1);">
+          <div class="wave"></div>
+        </div>
+        <div class="tank-overlay">
+          <div class="tank-value">${data.ocupabilidad}<span class="tank-unit">%</span></div>
+        </div>
+      </div>
+      <div class="tank-label">${tunelId}</div>
+    </div>
+    
+    <div class="gauge-stats">
+      <div class="stat-card">
+        <div class="stat-label">Tipo</div>
+        <div class="stat-value">${data.tipo === 'MP' ? 'Materia Prima' : 'Producto Terminado'}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Palets</div>
+        <div class="stat-value">${data.palets} / ${data.capacidad}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">vs Objetivo</div>
+        <div class="stat-value" style="color: ${diferencia > 0 ? '#4ade80' : '#ef4444'}">${signo}${diferencia}%</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Estado</div>
+        <div class="stat-value">${data.ocupabilidad >= 85 ? '✓ Óptimo' : data.ocupabilidad >= 75 ? '⚠ Medio' : '⛔ Bajo'}</div>
+      </div>
+    </div>
+  `;
+}
+
+function setupLiquidGauge() {
+  initLiquidGaugeData();
+  
+  const selector = document.getElementById('tunelSelector');
+  if (!selector) return;
+  
+  selector.addEventListener('change', (e) => {
+    renderLiquidGauge(e.target.value);
+  });
+  
+  // Render inicial
+  renderLiquidGauge('T01');
 }
 
 /************************************
@@ -272,7 +290,7 @@ function renderTiempoTunelDummy() {
   });
 }
 
-/* Grafica de Numero de Pales por dia */
+/* Grafica de Numero de Pales por dia - BASTONES DE VARIACION */
 
 let chartPaletsDia = null;
 
@@ -285,74 +303,268 @@ function renderPaletsPorDiaDummy() {
   const days = 14;
   const labels = [];
   const palets = [];
+  const barData = [];
 
   const today = new Date();
+  
+  // Generar datos de palets por día
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
-
-    // label tipo "13 Ene"
     const label = d.toLocaleDateString("es-PE", {
       day: "2-digit",
       month: "short",
     });
     labels.push(label);
-
-    // dummy palets: variación realista
-    palets.push(randInt(20, 90));
+    palets.push(randInt(30, 80));
   }
 
+  // Calcular promedio
+  const promedio = palets.reduce((a, b) => a + b, 0) / palets.length;
+
+  // Crear datos para los bastones (desde valor anterior hasta valor actual)
+  for (let i = 0; i < palets.length; i++) {
+    const valorActual = palets[i];
+    const valorAnterior = i === 0 ? promedio : palets[i - 1];
+    const isPositive = valorActual >= valorAnterior;
+    
+    barData.push({
+      x: i,
+      y: [valorAnterior, valorActual],
+      actual: valorActual,
+      anterior: valorAnterior,
+      variacion: valorActual - valorAnterior,
+      variacionPct: ((valorActual - valorAnterior) / valorAnterior * 100),
+      isPositive,
+    });
+  }
+
+  // Calcular min/max para el eje Y
+  const allValues = palets;
+  const minValue = Math.min(...allValues);
+  const maxValue = Math.max(...allValues);
+  const padding = Math.max(5, Math.round((maxValue - minValue) * 0.15));
+  const yMin = Math.max(0, minValue - padding);
+  const yMax = maxValue + padding;
+
+  // Plugin para dibujar bastones y línea con gradiente
+  const barStickPlugin = {
+    id: 'barStick',
+    afterDatasetsDraw(chart) {
+      const { ctx, scales } = chart;
+      const xScale = scales.x;
+      const yScale = scales.y;
+      const activeElements = chart.getActiveElements();
+      const hoveredIndex = activeElements.length > 0 ? activeElements[0].index : -1;
+
+      ctx.save();
+
+      // Primero dibujar los bastones
+      barData.forEach((bar, i) => {
+        const x = xScale.getPixelForValue(i);
+        const yStart = yScale.getPixelForValue(bar.y[0]);
+        const yEnd = yScale.getPixelForValue(bar.y[1]);
+        
+        const isHovered = i === hoveredIndex;
+        const color = bar.isPositive ? '#4ade80' : '#ef4444';
+        const glowColor = bar.isPositive ? 'rgba(74, 222, 128, 0.4)' : 'rgba(239, 68, 68, 0.4)';
+        
+        const barWidth = isHovered ? 20 : 16;
+        const glowIntensity = isHovered ? 15 : 10;
+
+        // Dibujar bastón con glow
+        ctx.fillStyle = color;
+        ctx.shadowColor = glowColor;
+        ctx.shadowBlur = glowIntensity;
+        ctx.fillRect(x - barWidth / 2, Math.min(yStart, yEnd), barWidth, Math.abs(yEnd - yStart) || 2);
+
+        // Borde si está en hover
+        if (isHovered) {
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+          ctx.lineWidth = 2;
+          ctx.shadowBlur = 0;
+          ctx.strokeRect(x - barWidth / 2, Math.min(yStart, yEnd), barWidth, Math.abs(yEnd - yStart) || 2);
+        }
+      });
+
+      // Ahora dibujar la línea con gradiente por segmentos
+      ctx.shadowBlur = 0;
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'miter';
+
+      for (let i = 0; i < palets.length - 1; i++) {
+        const x1 = xScale.getPixelForValue(i);
+        const y1 = yScale.getPixelForValue(palets[i]);
+        const x2 = xScale.getPixelForValue(i + 1);
+        const y2 = yScale.getPixelForValue(palets[i + 1]);
+
+        // Color del segmento según si sube o baja
+        const isRising = palets[i + 1] >= palets[i];
+        const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
+        
+        if (isRising) {
+          gradient.addColorStop(0, '#4ade80');
+          gradient.addColorStop(1, '#22c55e');
+        } else {
+          gradient.addColorStop(0, '#ef4444');
+          gradient.addColorStop(1, '#dc2626');
+        }
+
+        ctx.strokeStyle = gradient;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+      }
+
+      // Dibujar puntos en cada valor
+      palets.forEach((val, i) => {
+        const x = xScale.getPixelForValue(i);
+        const y = yScale.getPixelForValue(val);
+        const isRising = i === 0 ? true : val >= palets[i - 1];
+        const color = isRising ? '#4ade80' : '#ef4444';
+
+        ctx.fillStyle = color;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      });
+
+      ctx.restore();
+    },
+  };
+
   chartPaletsDia = new Chart(el, {
-    type: "bar",
+    type: "line",
     data: {
       labels,
       datasets: [
         {
           label: "Palets por día",
           data: palets,
-          backgroundColor: "rgba(54, 162, 235, 0.7)",
-          borderRadius: 4,
-          barThickness: 14,
+          borderColor: 'transparent',
+          backgroundColor: 'transparent',
+          pointRadius: 8,
+          pointHoverRadius: 10,
+          pointBackgroundColor: 'transparent',
+          pointBorderColor: 'transparent',
+          pointHoverBackgroundColor: 'transparent',
+          pointHoverBorderColor: 'transparent',
+          showLine: false,
+        },
+        {
+          label: `Promedio período (${promedio.toFixed(0)})`,
+          data: new Array(days).fill(promedio),
+          type: "line",
+          borderColor: "rgba(139, 92, 246, 0.9)",
+          borderWidth: 2,
+          borderDash: [8, 4],
+          pointRadius: 0,
+          pointHoverRadius: 0,
+          fill: false,
         },
       ],
     },
     options: {
-      ...baseOptions({
-        xTitle: "Día",
-        yTitle: "N° de palets",
-        yMin: 0,
-      }),
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      interaction: {
+        mode: 'index',
+        intersect: false,
+      },
       plugins: {
-        ...baseOptions().plugins,
+        legend: {
+          display: true,
+          position: "top",
+          labels: { 
+            color: UI.legendText,
+            padding: 15,
+            boxWidth: 40,
+          },
+        },
         tooltip: {
           enabled: true,
+          backgroundColor: 'rgba(15, 27, 45, 0.95)',
+          titleColor: '#ffffff',
+          bodyColor: '#ffffff',
+          borderColor: 'rgba(255, 255, 255, 0.2)',
+          borderWidth: 1,
+          padding: 12,
+          displayColors: false,
+          filter: (tooltipItem) => {
+            return tooltipItem.datasetIndex === 0;
+          },
           callbacks: {
-            label: (c) => `${c.dataset.label}: ${c.raw}`,
+            title: (tooltipItems) => {
+              return tooltipItems[0].label;
+            },
+            label: (c) => {
+              const bar = barData[c.dataIndex];
+              const signo = bar.variacion >= 0 ? "+" : "";
+              const vsProm = ((bar.actual - promedio) / promedio * 100).toFixed(1);
+              const signoP = vsProm > 0 ? "+" : "";
+              const diaRef = c.dataIndex === 0 ? "promedio" : "día anterior";
+
+              return [
+                `Palets del día: ${bar.actual}`,
+                `───────────────`,
+                `Valor ${diaRef}: ${bar.anterior.toFixed(0)}`,
+                `Variación: ${signo}${bar.variacion.toFixed(0)} (${signo}${bar.variacionPct.toFixed(1)}%) ${bar.isPositive ? '↑' : '↓'}`,
+                `vs Promedio: ${signoP}${vsProm}%`,
+              ];
+            },
           },
         },
       },
+      layout: {
+        padding: {
+          top: 10,
+          bottom: 10,
+          left: 10,
+          right: 10,
+        },
+      },
       scales: {
-        ...baseOptions().scales,
         x: {
-          ...baseOptions().scales?.x,
+          type: 'category',
           ticks: {
             color: UI.axisText,
-            maxRotation: 0,
-            minRotation: 0,
+            maxRotation: 45,
+            minRotation: 45,
+            font: { size: 11 },
           },
           grid: { display: false },
+          title: {
+            display: true,
+            text: "Día",
+            color: UI.axisText,
+          },
         },
         y: {
-          ...baseOptions().scales?.y,
+          min: yMin,
+          max: yMax,
           ticks: {
             color: UI.axisText,
             precision: 0,
           },
-          grid: { color: UI.grid },
-          beginAtZero: true,
+          grid: { 
+            color: UI.grid,
+            drawBorder: false,
+          },
+          title: {
+            display: true,
+            text: "N° de palets",
+            color: UI.axisText,
+          },
         },
       },
     },
+    plugins: [barStickPlugin],
   });
 }
 
@@ -746,7 +958,7 @@ function renderAsentamientoTipoDummy() {
 let chartAsentamientoTopGrupos = null;
 
 function renderAsentamientoTop3PorGrupoDummy() {
-  const el = document.getElementById("chartAsentamientoTop5Grupos"); // usa tu mismo canvas id
+  const el = document.getElementById("chartAsentamientoTop5Grupos");
   if (!el) return;
   if (chartAsentamientoTopGrupos) chartAsentamientoTopGrupos.destroy();
 
@@ -767,7 +979,7 @@ function renderAsentamientoTop3PorGrupoDummy() {
   const mp = data.filter(d => d.tipo === "MP")
                  .sort((a,b)=>b.asentamiento - a.asentamiento)
                  .slice(0, 3)
-                 .reverse(); // mayor arriba en horizontal
+                 .reverse();
 
   const pt = data.filter(d => d.tipo === "PT")
                  .sort((a,b)=>b.asentamiento - a.asentamiento)
@@ -775,9 +987,54 @@ function renderAsentamientoTop3PorGrupoDummy() {
                  .reverse();
 
   const labels = [...mp.map(d => d.tunel), ...pt.map(d => d.tunel)];
+  const values = [...mp.map(d => d.asentamiento), ...pt.map(d => d.asentamiento)];
 
   const valuesMP = [...mp.map(d => d.asentamiento), ...new Array(pt.length).fill(null)];
   const valuesPT = [...new Array(mp.length).fill(null), ...pt.map(d => d.asentamiento)];
+
+  // Plugin para dibujar etiquetas dentro de las barras
+  const datalabelsPlugin = {
+    id: 'datalabels',
+    afterDatasetsDraw(chart) {
+      const { ctx, scales } = chart;
+      const xScale = scales.x;
+      const yScale = scales.y;
+
+      ctx.save();
+      ctx.font = 'bold 13px system-ui';
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      chart.data.datasets.forEach((dataset, datasetIndex) => {
+        const meta = chart.getDatasetMeta(datasetIndex);
+        if (!meta.hidden) {
+          meta.data.forEach((bar, index) => {
+            const value = dataset.data[index];
+            if (value !== null && value !== undefined) {
+              const xEnd = xScale.getPixelForValue(value);
+              const xStart = xScale.getPixelForValue(0);
+              const xCenter = (xStart + xEnd) / 2;
+              const y = yScale.getPixelForValue(index);
+              ctx.fillText(`${value} min`, xCenter, y);
+            }
+          });
+        }
+      });
+
+      ctx.restore();
+    },
+  };
+
+  // Crear gradientes
+  const ctx = el.getContext('2d');
+  const gradientMP = ctx.createLinearGradient(0, 0, 400, 0);
+  gradientMP.addColorStop(0, 'rgba(54, 162, 235, 0.9)');
+  gradientMP.addColorStop(1, 'rgba(6, 182, 212, 1)');
+
+  const gradientPT = ctx.createLinearGradient(0, 0, 400, 0);
+  gradientPT.addColorStop(0, 'rgba(75, 192, 192, 0.9)');
+  gradientPT.addColorStop(1, 'rgba(16, 185, 129, 1)');
 
   chartAsentamientoTopGrupos = new Chart(el, {
     type: "bar",
@@ -787,16 +1044,16 @@ function renderAsentamientoTop3PorGrupoDummy() {
         {
           label: "Materia Prima (Top 3)",
           data: valuesMP,
-          backgroundColor: "rgba(54,162,235,0.85)",
-          borderRadius: 6,
-          barThickness: 18
+          backgroundColor: gradientMP,
+          borderRadius: 20,
+          barThickness: 22
         },
         {
           label: "Producto Terminado (Top 3)",
           data: valuesPT,
-          backgroundColor: "rgba(75,192,192,0.85)",
-          borderRadius: 6,
-          barThickness: 18
+          backgroundColor: gradientPT,
+          borderRadius: 20,
+          barThickness: 22
         }
       ]
     },
@@ -812,7 +1069,9 @@ function renderAsentamientoTop3PorGrupoDummy() {
           labels: { color: UI.legendText }
         },
         tooltip: {
-          callbacks: { label: (c) => ` ${c.raw.toFixed(0)} min` }
+          callbacks: { 
+            label: (c) => `${c.raw} min`
+          }
         }
       },
       scales: {
@@ -834,7 +1093,8 @@ function renderAsentamientoTop3PorGrupoDummy() {
           grid: { display: false }
         }
       }
-    }
+    },
+    plugins: [datalabelsPlugin],
   });
 }
 
@@ -844,13 +1104,540 @@ function renderAsentamientoTop3PorGrupoDummy() {
  * 6) INIT: render todo dummy
  ************************************/
 function renderAllDummy() {
-  renderOcupabilidadDummy();
+  setupLiquidGauge();
   renderFallasDummy();
   renderTiempoTunelDummy();
   renderPaletsPorDiaDummy();
+  renderPaletsPorDiaSolidDummy();
+  renderPaletsPorDiaDashedDummy();
   renderTiempoTunelMinMaxPromDummy();
   renderAsentamientoTop3PorGrupoDummy();
 }
 
 // Llama esto cuando cargue tu página
 document.addEventListener("DOMContentLoaded", renderAllDummy);
+
+
+/* Grafica de Palets - LINEA SOLIDA CYAN */
+
+let chartPaletsDiaSolid = null;
+
+function renderPaletsPorDiaSolidDummy() {
+  const el = document.getElementById("chartPaletsDiaSolid");
+  if (!el) return;
+  if (chartPaletsDiaSolid) chartPaletsDiaSolid.destroy();
+
+  const days = 14;
+  const labels = [];
+  const palets = [];
+  const barData = [];
+
+  const today = new Date();
+  
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const label = d.toLocaleDateString("es-PE", {
+      day: "2-digit",
+      month: "short",
+    });
+    labels.push(label);
+    palets.push(randInt(30, 80));
+  }
+
+  const promedio = palets.reduce((a, b) => a + b, 0) / palets.length;
+
+  for (let i = 0; i < palets.length; i++) {
+    const valorActual = palets[i];
+    const valorAnterior = i === 0 ? promedio : palets[i - 1];
+    const isPositive = valorActual >= valorAnterior;
+    
+    barData.push({
+      x: i,
+      y: [valorAnterior, valorActual],
+      actual: valorActual,
+      anterior: valorAnterior,
+      variacion: valorActual - valorAnterior,
+      variacionPct: ((valorActual - valorAnterior) / valorAnterior * 100),
+      isPositive,
+    });
+  }
+
+  const allValues = palets;
+  const minValue = Math.min(...allValues);
+  const maxValue = Math.max(...allValues);
+  const padding = Math.max(5, Math.round((maxValue - minValue) * 0.15));
+  const yMin = Math.max(0, minValue - padding);
+  const yMax = maxValue + padding;
+
+  const barStickPluginSolid = {
+    id: 'barStickSolid',
+    afterDatasetsDraw(chart) {
+      const { ctx, scales } = chart;
+      const xScale = scales.x;
+      const yScale = scales.y;
+      const activeElements = chart.getActiveElements();
+      const hoveredIndex = activeElements.length > 0 ? activeElements[0].index : -1;
+
+      ctx.save();
+
+      barData.forEach((bar, i) => {
+        const x = xScale.getPixelForValue(i);
+        const yStart = yScale.getPixelForValue(bar.y[0]);
+        const yEnd = yScale.getPixelForValue(bar.y[1]);
+        
+        const isHovered = i === hoveredIndex;
+        const color = bar.isPositive ? '#4ade80' : '#ef4444';
+        const glowColor = bar.isPositive ? 'rgba(74, 222, 128, 0.4)' : 'rgba(239, 68, 68, 0.4)';
+        
+        const barWidth = isHovered ? 20 : 16;
+        const glowIntensity = isHovered ? 15 : 10;
+
+        ctx.fillStyle = color;
+        ctx.shadowColor = glowColor;
+        ctx.shadowBlur = glowIntensity;
+        ctx.fillRect(x - barWidth / 2, Math.min(yStart, yEnd), barWidth, Math.abs(yEnd - yStart) || 2);
+
+        if (isHovered) {
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+          ctx.lineWidth = 2;
+          ctx.shadowBlur = 0;
+          ctx.strokeRect(x - barWidth / 2, Math.min(yStart, yEnd), barWidth, Math.abs(yEnd - yStart) || 2);
+        }
+      });
+
+      // Línea sólida cyan
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = 'rgba(6, 182, 212, 0.5)';
+      ctx.strokeStyle = '#06b6d4';
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'miter';
+
+      ctx.beginPath();
+      palets.forEach((val, i) => {
+        const x = xScale.getPixelForValue(i);
+        const y = yScale.getPixelForValue(val);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      // Puntos
+      ctx.shadowBlur = 0;
+      palets.forEach((val, i) => {
+        const x = xScale.getPixelForValue(i);
+        const y = yScale.getPixelForValue(val);
+
+        ctx.fillStyle = '#06b6d4';
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      });
+
+      ctx.restore();
+    },
+  };
+
+  chartPaletsDiaSolid = new Chart(el, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Palets por día",
+          data: palets,
+          borderColor: 'transparent',
+          backgroundColor: 'transparent',
+          pointRadius: 8,
+          pointHoverRadius: 10,
+          pointBackgroundColor: 'transparent',
+          pointBorderColor: 'transparent',
+          pointHoverBackgroundColor: 'transparent',
+          pointHoverBorderColor: 'transparent',
+          showLine: false,
+        },
+        {
+          label: `Promedio período (${promedio.toFixed(0)})`,
+          data: new Array(days).fill(promedio),
+          type: "line",
+          borderColor: "rgba(139, 92, 246, 0.9)",
+          borderWidth: 2,
+          borderDash: [8, 4],
+          pointRadius: 0,
+          pointHoverRadius: 0,
+          fill: false,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      interaction: {
+        mode: 'index',
+        intersect: false,
+      },
+      plugins: {
+        legend: {
+          display: true,
+          position: "top",
+          labels: { 
+            color: UI.legendText,
+            padding: 15,
+            boxWidth: 40,
+          },
+        },
+        tooltip: {
+          enabled: true,
+          backgroundColor: 'rgba(15, 27, 45, 0.95)',
+          titleColor: '#ffffff',
+          bodyColor: '#ffffff',
+          borderColor: 'rgba(255, 255, 255, 0.2)',
+          borderWidth: 1,
+          padding: 12,
+          displayColors: false,
+          filter: (tooltipItem) => {
+            return tooltipItem.datasetIndex === 0;
+          },
+          callbacks: {
+            title: (tooltipItems) => {
+              return tooltipItems[0].label;
+            },
+            label: (c) => {
+              const bar = barData[c.dataIndex];
+              const signo = bar.variacion >= 0 ? "+" : "";
+              const vsProm = ((bar.actual - promedio) / promedio * 100).toFixed(1);
+              const signoP = vsProm > 0 ? "+" : "";
+              const diaRef = c.dataIndex === 0 ? "promedio" : "día anterior";
+
+              return [
+                `Palets del día: ${bar.actual}`,
+                `───────────────`,
+                `Valor ${diaRef}: ${bar.anterior.toFixed(0)}`,
+                `Variación: ${signo}${bar.variacion.toFixed(0)} (${signo}${bar.variacionPct.toFixed(1)}%) ${bar.isPositive ? '↑' : '↓'}`,
+                `vs Promedio: ${signoP}${vsProm}%`,
+              ];
+            },
+          },
+        },
+      },
+      layout: {
+        padding: {
+          top: 10,
+          bottom: 10,
+          left: 10,
+          right: 10,
+        },
+      },
+      scales: {
+        x: {
+          type: 'category',
+          ticks: {
+            color: UI.axisText,
+            maxRotation: 45,
+            minRotation: 45,
+            font: { size: 11 },
+          },
+          grid: { display: false },
+          title: {
+            display: true,
+            text: "Día",
+            color: UI.axisText,
+          },
+        },
+        y: {
+          min: yMin,
+          max: yMax,
+          ticks: {
+            color: UI.axisText,
+            precision: 0,
+          },
+          grid: { 
+            color: UI.grid,
+            drawBorder: false,
+          },
+          title: {
+            display: true,
+            text: "N° de palets",
+            color: UI.axisText,
+          },
+        },
+      },
+    },
+    plugins: [barStickPluginSolid],
+  });
+}
+
+/* Grafica de Palets - LINEA PUNTEADA CON COLORES */
+
+let chartPaletsDiaDashed = null;
+
+function renderPaletsPorDiaDashedDummy() {
+  const el = document.getElementById("chartPaletsDiaDashed");
+  if (!el) return;
+  if (chartPaletsDiaDashed) chartPaletsDiaDashed.destroy();
+
+  const days = 14;
+  const labels = [];
+  const palets = [];
+  const barData = [];
+
+  const today = new Date();
+  
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const label = d.toLocaleDateString("es-PE", {
+      day: "2-digit",
+      month: "short",
+    });
+    labels.push(label);
+    palets.push(randInt(30, 80));
+  }
+
+  const promedio = palets.reduce((a, b) => a + b, 0) / palets.length;
+
+  for (let i = 0; i < palets.length; i++) {
+    const valorActual = palets[i];
+    const valorAnterior = i === 0 ? promedio : palets[i - 1];
+    const isPositive = valorActual >= valorAnterior;
+    
+    barData.push({
+      x: i,
+      y: [valorAnterior, valorActual],
+      actual: valorActual,
+      anterior: valorAnterior,
+      variacion: valorActual - valorAnterior,
+      variacionPct: ((valorActual - valorAnterior) / valorAnterior * 100),
+      isPositive,
+    });
+  }
+
+  const allValues = palets;
+  const minValue = Math.min(...allValues);
+  const maxValue = Math.max(...allValues);
+  const padding = Math.max(5, Math.round((maxValue - minValue) * 0.15));
+  const yMin = Math.max(0, minValue - padding);
+  const yMax = maxValue + padding;
+
+  const barStickPluginDashed = {
+    id: 'barStickDashed',
+    afterDatasetsDraw(chart) {
+      const { ctx, scales } = chart;
+      const xScale = scales.x;
+      const yScale = scales.y;
+      const activeElements = chart.getActiveElements();
+      const hoveredIndex = activeElements.length > 0 ? activeElements[0].index : -1;
+
+      ctx.save();
+
+      barData.forEach((bar, i) => {
+        const x = xScale.getPixelForValue(i);
+        const yStart = yScale.getPixelForValue(bar.y[0]);
+        const yEnd = yScale.getPixelForValue(bar.y[1]);
+        
+        const isHovered = i === hoveredIndex;
+        const color = bar.isPositive ? '#4ade80' : '#ef4444';
+        const glowColor = bar.isPositive ? 'rgba(74, 222, 128, 0.4)' : 'rgba(239, 68, 68, 0.4)';
+        
+        const barWidth = isHovered ? 20 : 16;
+        const glowIntensity = isHovered ? 15 : 10;
+
+        ctx.fillStyle = color;
+        ctx.shadowColor = glowColor;
+        ctx.shadowBlur = glowIntensity;
+        ctx.fillRect(x - barWidth / 2, Math.min(yStart, yEnd), barWidth, Math.abs(yEnd - yStart) || 2);
+
+        if (isHovered) {
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+          ctx.lineWidth = 2;
+          ctx.shadowBlur = 0;
+          ctx.strokeRect(x - barWidth / 2, Math.min(yStart, yEnd), barWidth, Math.abs(yEnd - yStart) || 2);
+        }
+      });
+
+      // Línea punteada con colores por segmento
+      ctx.shadowBlur = 0;
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'miter';
+      ctx.setLineDash([8, 4]);
+
+      for (let i = 0; i < palets.length - 1; i++) {
+        const x1 = xScale.getPixelForValue(i);
+        const y1 = yScale.getPixelForValue(palets[i]);
+        const x2 = xScale.getPixelForValue(i + 1);
+        const y2 = yScale.getPixelForValue(palets[i + 1]);
+
+        const isRising = palets[i + 1] >= palets[i];
+        const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
+        
+        if (isRising) {
+          gradient.addColorStop(0, '#4ade80');
+          gradient.addColorStop(1, '#22c55e');
+        } else {
+          gradient.addColorStop(0, '#ef4444');
+          gradient.addColorStop(1, '#dc2626');
+        }
+
+        ctx.strokeStyle = gradient;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+      }
+
+      // Puntos
+      ctx.setLineDash([]);
+      palets.forEach((val, i) => {
+        const x = xScale.getPixelForValue(i);
+        const y = yScale.getPixelForValue(val);
+        const isRising = i === 0 ? true : val >= palets[i - 1];
+        const color = isRising ? '#4ade80' : '#ef4444';
+
+        ctx.fillStyle = color;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      });
+
+      ctx.restore();
+    },
+  };
+
+  chartPaletsDiaDashed = new Chart(el, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Palets por día",
+          data: palets,
+          borderColor: 'transparent',
+          backgroundColor: 'transparent',
+          pointRadius: 8,
+          pointHoverRadius: 10,
+          pointBackgroundColor: 'transparent',
+          pointBorderColor: 'transparent',
+          pointHoverBackgroundColor: 'transparent',
+          pointHoverBorderColor: 'transparent',
+          showLine: false,
+        },
+        {
+          label: `Promedio período (${promedio.toFixed(0)})`,
+          data: new Array(days).fill(promedio),
+          type: "line",
+          borderColor: "rgba(139, 92, 246, 0.9)",
+          borderWidth: 2,
+          borderDash: [8, 4],
+          pointRadius: 0,
+          pointHoverRadius: 0,
+          fill: false,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      interaction: {
+        mode: 'index',
+        intersect: false,
+      },
+      plugins: {
+        legend: {
+          display: true,
+          position: "top",
+          labels: { 
+            color: UI.legendText,
+            padding: 15,
+            boxWidth: 40,
+          },
+        },
+        tooltip: {
+          enabled: true,
+          backgroundColor: 'rgba(15, 27, 45, 0.95)',
+          titleColor: '#ffffff',
+          bodyColor: '#ffffff',
+          borderColor: 'rgba(255, 255, 255, 0.2)',
+          borderWidth: 1,
+          padding: 12,
+          displayColors: false,
+          filter: (tooltipItem) => {
+            return tooltipItem.datasetIndex === 0;
+          },
+          callbacks: {
+            title: (tooltipItems) => {
+              return tooltipItems[0].label;
+            },
+            label: (c) => {
+              const bar = barData[c.dataIndex];
+              const signo = bar.variacion >= 0 ? "+" : "";
+              const vsProm = ((bar.actual - promedio) / promedio * 100).toFixed(1);
+              const signoP = vsProm > 0 ? "+" : "";
+              const diaRef = c.dataIndex === 0 ? "promedio" : "día anterior";
+
+              return [
+                `Palets del día: ${bar.actual}`,
+                `───────────────`,
+                `Valor ${diaRef}: ${bar.anterior.toFixed(0)}`,
+                `Variación: ${signo}${bar.variacion.toFixed(0)} (${signo}${bar.variacionPct.toFixed(1)}%) ${bar.isPositive ? '↑' : '↓'}`,
+                `vs Promedio: ${signoP}${vsProm}%`,
+              ];
+            },
+          },
+        },
+      },
+      layout: {
+        padding: {
+          top: 10,
+          bottom: 10,
+          left: 10,
+          right: 10,
+        },
+      },
+      scales: {
+        x: {
+          type: 'category',
+          ticks: {
+            color: UI.axisText,
+            maxRotation: 45,
+            minRotation: 45,
+            font: { size: 11 },
+          },
+          grid: { display: false },
+          title: {
+            display: true,
+            text: "Día",
+            color: UI.axisText,
+          },
+        },
+        y: {
+          min: yMin,
+          max: yMax,
+          ticks: {
+            color: UI.axisText,
+            precision: 0,
+          },
+          grid: { 
+            color: UI.grid,
+            drawBorder: false,
+          },
+          title: {
+            display: true,
+            text: "N° de palets",
+            color: UI.axisText,
+          },
+        },
+      },
+    },
+    plugins: [barStickPluginDashed],
+  });
+}

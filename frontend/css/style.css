@@ -81,7 +81,7 @@ nav .brand-logo{
 .dashboard-grid{
   display: grid;
   grid-template-columns: repeat(12, 1fr);
-  grid-template-rows: repeat(8, minmax(70px, 1fr));
+  grid-template-rows: repeat(12, minmax(90px, 1fr));
   gap: var(--gap);
   padding: 14px;
   background: transparent;
@@ -169,6 +169,8 @@ nav .brand-logo{
 .widget:nth-child(6){ grid-column: span 6; grid-row: span 3; }
 .widget:nth-child(7){ grid-column: span 6; grid-row: span 3; }
 .widget:nth-child(8){ grid-column: span 6; grid-row: span 3; }
+.widget:nth-child(9){ grid-column: span 6; grid-row: span 4; }
+.widget:nth-child(10){ grid-column: span 6; grid-row: span 4; }
 
 
 /* ===== KPI Cards ===== */
@@ -345,4 +347,184 @@ nav .brand-logo{
   width: 100% !important;
   height: 100% !important;
   display: block;
+}
+
+/* ==== LIQUID GAUGE STYLES ==== */
+
+.liquid-gauge-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 20px;
+  padding: 10px;
+}
+
+.gauge-selector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.gauge-selector label {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.gauge-selector select {
+  flex: 1;
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.gauge-selector select option {
+  background: #1a1a1a;
+  color: #ffffff;
+  padding: 8px;
+}
+
+.gauge-selector select:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.18);
+}
+
+.gauge-selector select:focus {
+  outline: none;
+  border-color: rgba(33,150,243,0.5);
+  box-shadow: 0 0 0 3px rgba(33,150,243,0.1);
+}
+
+.gauge-display {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  min-height: 0;
+}
+
+.liquid-tank {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.tank-container {
+  position: relative;
+  width: 180px;
+  height: 280px;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.tank-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+  border: 2px solid rgba(255,255,255,0.15);
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+}
+
+.liquid-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 0 0 18px 18px;
+}
+
+.wave {
+  position: absolute;
+  top: -10px;
+  left: -50%;
+  width: 200%;
+  height: 20px;
+  background: radial-gradient(ellipse at center, rgba(255,255,255,0.3) 0%, transparent 70%);
+  animation: wave 3s ease-in-out infinite;
+}
+
+@keyframes wave {
+  0%, 100% { transform: translateX(0) translateY(0); }
+  50% { transform: translateX(-25%) translateY(-5px); }
+}
+
+.tank-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.tank-value {
+  font-size: 56px;
+  font-weight: 800;
+  color: rgba(255,255,255,0.95);
+  text-shadow: 0 2px 10px rgba(0,0,0,0.5), 0 0 20px rgba(255,255,255,0.3);
+  letter-spacing: -2px;
+}
+
+.tank-unit {
+  font-size: 24px;
+  font-weight: 700;
+  margin-left: 4px;
+}
+
+.tank-label {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  padding: 8px 20px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+}
+
+.gauge-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.stat-card {
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.stat-card:hover {
+  background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+  border-color: rgba(255,255,255,0.15);
+  transform: translateY(-2px);
+}
+
+.stat-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: rgba(255,255,255,0.6);
+  margin-bottom: 6px;
+}
+
+.stat-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
 }

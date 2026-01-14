@@ -178,8 +178,23 @@
         </div>
 
         <div class="widget card chart-card">
-          <div class="kpi-chart">
-            <canvas id="chartOcupabilidad"></canvas>
+          <div class="liquid-gauge-container" id="liquidGaugeContainer">
+            <div class="gauge-selector">
+              <label>Seleccionar Túnel:</label>
+              <select id="tunelSelector" class="browser-default">
+                <option value="T01">T01 - Materia Prima</option>
+                <option value="T02">T02 - Materia Prima</option>
+                <option value="T03">T03 - Materia Prima</option>
+                <option value="T04">T04 - Materia Prima</option>
+                <option value="T05">T05 - Materia Prima</option>
+                <option value="T06">T06 - Producto Terminado</option>
+                <option value="T07">T07 - Producto Terminado</option>
+                <option value="T08">T08 - Producto Terminado</option>
+                <option value="T09">T09 - Producto Terminado</option>
+                <option value="T10">T10 - Producto Terminado</option>
+              </select>
+            </div>
+            <div class="gauge-display" id="gaugeDisplay"></div>
           </div>
         </div>
 
@@ -197,6 +212,18 @@
         <div class="widget card chart-card">
           <div class="kpi-chart">
             <canvas id="chartPaletsDia"></canvas>
+          </div>
+        </div>
+
+        <div class="widget card chart-card">
+          <div class="kpi-chart">
+            <canvas id="chartPaletsDiaSolid"></canvas>
+          </div>
+        </div>
+
+        <div class="widget card chart-card">
+          <div class="kpi-chart">
+            <canvas id="chartPaletsDiaDashed"></canvas>
           </div>
         </div>
 
