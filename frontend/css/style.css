@@ -321,3 +321,28 @@ nav .brand-logo{
   color: rgba(255,255,255,.88);
   font-variant-numeric: tabular-nums;
 }
+
+
+/* ==== Estilo de Grafica CHART ==== */
+
+.widget.card.chart-card{
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 14px;            /* ajusta si quieres */
+  box-sizing: border-box;
+}
+
+/* Área del chart toma todo el alto disponible */
+.widget.card.chart-card .kpi-chart{
+  flex: 1 1 auto;
+  position: relative;
+  min-height: 0;            /* IMPORTANTÍSIMO para que no se rompa en flex */
+}
+
+/* Canvas siempre al 100% */
+.widget.card.chart-card .kpi-chart canvas{
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}

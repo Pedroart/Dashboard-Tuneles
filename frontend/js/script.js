@@ -129,13 +129,6 @@ async function cargarDatos() {
     M.toast({ html: "No se encontraron procesos" });
     return;
   }
-
-  // Obtener series por tipo de caja y renderizar gráfica
-  const tiposCaja = await getSeriesPorTipoCaja(items);
-  renderChartEnfriamiento(tiposCaja);
-  
-  // Renderizar gráfica de tiempo por túnel
-  renderChartTiempoTunel(items);
 }
 
 
