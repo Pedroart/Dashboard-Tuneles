@@ -162,10 +162,10 @@ nav .brand-logo{
 
 /* Grid positioning - Layout proporcionado */
 /* 4 KPIs arriba: cada uno 3 columnas */
-.widget:nth-child(1){ grid-column: span 3; }
-.widget:nth-child(2){ grid-column: span 3; }
-.widget:nth-child(3){ grid-column: span 3; }
-.widget:nth-child(4){ grid-column: span 3; }
+.widget:nth-child(1){ grid-column: span 4; min-height: 180px; }
+.widget:nth-child(2){ grid-column: span 4; min-height: 180px; }
+.widget:nth-child(3){ grid-column: span 4; min-height: 180px; }
+.widget:nth-child(4){ grid-column: span 6; min-height: 380px; }
 
 /* 6 gráficas del medio: 2 columnas, 3 filas (6 columnas cada una) */
 .widget:nth-child(5){ grid-column: span 6; height: 320px; }
@@ -173,10 +173,10 @@ nav .brand-logo{
 .widget:nth-child(7){ grid-column: span 6; height: 320px; }
 .widget:nth-child(8){ grid-column: span 6; height: 320px; }
 .widget:nth-child(9){ grid-column: span 6; height: 320px; }
-.widget:nth-child(10){ grid-column: span 6; height: 320px; }
+.widget:nth-child(10){ grid-column: span 12; min-height: 220px; }
 
 /* Resumen Ejecutivo: ancho completo */
-.widget:nth-child(11){ grid-column: span 12; }
+.widget:nth-child(11){ grid-column: span 12; min-height: 400px; }
 
 /* Tabla: ancho completo */
 .widget:nth-child(12){ grid-column: span 12; }
@@ -903,6 +903,7 @@ nav .brand-logo{
 .table-number.negative {
   color: #ef4444;
 }
+
 
 
 

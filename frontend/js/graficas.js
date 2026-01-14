@@ -1733,78 +1733,58 @@ function renderOperationalTable() {
   const tuneles = ['T01', 'T02', 'T03', 'T04', 'T05', 'T06', 'T07', 'T08', 'T09', 'T10'];
   const isMP = (t) => ['T01', 'T02', 'T03', 'T04', 'T05'].includes(t);
 
-  // Generar datos simulados para cada túnel
-  const tableData = tuneles.map(tunel => {
+  const tableData = tuneles.map((tunel, idx) => {
     const tipo = isMP(tunel) ? 'MP' : 'PT';
-    const ocupabilidad = tipo === 'MP' ? randInt(65, 90) : randInt(55, 85);
-    const capacidad = randInt(45, 60);
-    const palets = Math.round((ocupabilidad * capacidad) / 100);
-    const tiempoEnfriamiento = (tipo === 'MP' ? randInt(260, 310) : randInt(210, 260)) / 60;
-    const tiempoAsentamiento = tipo === 'MP' ? randInt(40, 75) : randInt(30, 60);
-    const procesos = randInt(8, 18);
-    const fallas = randInt(0, 5);
-    const eficiencia = randInt(75, 98);
-    const temperatura = (Math.random() * 1.2 - 0.6).toFixed(1);
+    const palets = randInt(40, 60);
+    const incidentes = randInt(0, 5);
+    const tiempoEfectivo = (tipo === 'MP' ? randInt(260, 310) : randInt(210, 260)) / 60;
+    const tempIngreso = randInt(15, 25);
+    const tempSalida = randFloat(-1, 1);
+    const indiceEnfriamiento = ((tempIngreso - tempSalida) / tiempoEfectivo).toFixed(2);
 
     return {
-      tunel,
+      id: idx + 1,
       tipo,
-      ocupabilidad,
-      capacidad,
+      tunel,
       palets,
-      tiempoEnfriamiento: tiempoEnfriamiento.toFixed(1),
-      tiempoAsentamiento,
-      procesos,
-      fallas,
-      eficiencia,
-      temperatura,
-      estado: fallas === 0 ? 'green' : fallas <= 2 ? 'yellow' : 'red'
+      incidentes,
+      tiempoEfectivo: tiempoEfectivo.toFixed(1),
+      tempIngreso: tempIngreso.toFixed(1),
+      tempSalida: tempSalida.toFixed(1),
+      indiceEnfriamiento
     };
   });
 
-  // Construir HTML de la tabla
   let tableHTML = `
     <table class="data-table">
       <thead>
         <tr>
-          <th>Túnel</th>
+          <th>ID</th>
           <th>Tipo</th>
-          <th>Ocupabilidad</th>
+          <th>Túnel</th>
           <th>Palets</th>
-          <th>Capacidad</th>
-          <th>T. Enfriamiento</th>
-          <th>T. Asentamiento</th>
-          <th>Procesos</th>
-          <th>Fallas</th>
-          <th>Eficiencia</th>
-          <th>Temp. Prom.</th>
-          <th>Estado</th>
+          <th>Incidentes</th>
+          <th>Tiempo Efectivo</th>
+          <th>Temp. Ingreso</th>
+          <th>Temp. Salida</th>
+          <th>Índice Enfriamiento</th>
         </tr>
       </thead>
       <tbody>
   `;
 
   tableData.forEach(row => {
-    const statusText = row.estado === 'green' ? 'Óptimo' : row.estado === 'yellow' ? 'Normal' : 'Alerta';
     tableHTML += `
       <tr>
-        <td><strong>${row.tunel}</strong></td>
+        <td class="table-number"><strong>#${row.id}</strong></td>
         <td><span class="table-badge badge-${row.tipo.toLowerCase()}">${row.tipo}</span></td>
-        <td class="table-number">${row.ocupabilidad}%</td>
+        <td><strong>${row.tunel}</strong></td>
         <td class="table-number">${row.palets}</td>
-        <td class="table-number">${row.capacidad}</td>
-        <td class="table-number">${row.tiempoEnfriamiento}h</td>
-        <td class="table-number">${row.tiempoAsentamiento} min</td>
-        <td class="table-number">${row.procesos}</td>
-        <td class="table-number ${row.fallas > 0 ? 'negative' : ''}">${row.fallas}</td>
-        <td class="table-number ${row.eficiencia >= 90 ? 'positive' : ''}">${row.eficiencia}%</td>
-        <td class="table-number">${row.temperatura}°C</td>
-        <td>
-          <div class="table-status">
-            <span class="status-dot ${row.estado}"></span>
-            <span>${statusText}</span>
-          </div>
-        </td>
+        <td class="table-number ${row.incidentes > 0 ? 'negative' : ''}">${row.incidentes}</td>
+        <td class="table-number">${row.tiempoEfectivo}h</td>
+        <td class="table-number">${row.tempIngreso}°C</td>
+        <td class="table-number">${row.tempSalida}°C</td>
+        <td class="table-number">${row.indiceEnfriamiento}</td>
       </tr>
     `;
   });
@@ -1817,7 +1797,9 @@ function renderOperationalTable() {
   container.innerHTML = tableHTML;
 }
 
-// Función para exportar datos (placeholder)
 function exportTableData() {
   alert('Función de exportación en desarrollo. Los datos se exportarían a CSV/Excel.');
 }
+
+
+

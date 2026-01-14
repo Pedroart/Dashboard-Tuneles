@@ -22,10 +22,8 @@
   <body>
     <!-- Navbar -->
     <nav class="blue darken-2">
-      <div class="nav-wrapper">
-        <a href="#" class="brand-logo" style="margin-left: 15px"
-          >Dashboard Túneles</a
-        >
+      <div class="nav-wrapper" style="padding: 0 15px;">
+        <a href="#" class="brand-logo" style="margin-left: 0;">Dashboard Túneles</a>
       </div>
     </nav>
 
@@ -34,22 +32,6 @@
       <!-- Sidebar -->
       <aside class="sidebar z-depth-2">
         <h6>Filtros</h6>
-
-        <!--div class="row">
-          <div class="col s12">
-            <div class="input-field">
-              <input type="text" class="datepicker" id="fechaDesde" />
-              <label for="fechaDesde">Desde</label>
-            </div>
-          </div>
-
-          <div class="col s12">
-            <div class="input-field">
-              <input type="text" class="datepicker" id="fechaHasta" />
-              <label for="fechaHasta">Hasta</label>
-            </div>
-          </div>
-        </!--div-->
 
         <div class="row">
           <div class="input-field col s12">
@@ -128,41 +110,16 @@
           </div>
         </div>
 
-        <!-- CARD 3: Temperatura -->
+        <!-- CARD 3: Incidentes totales -->
         <div class="widget card kpi">
           <div class="kpi-top">
             <div>
-              <div class="kpi-title">Temperatura</div>
-              <div class="kpi-value">0.0 <span class="kpi-unit">°C</span></div>
-            </div>
-            <div class="kpi-badge">Objetivo</div>
-          </div>
-          <div class="kpi-divider"></div>
-          <div class="kpi-subgrid">
-            <div class="kpi-sub">
-              <div class="kpi-sub-label">Mín global</div>
-              <div class="kpi-sub-value">-0.4 °C</div>
-            </div>
-            <div class="kpi-sub">
-              <div class="kpi-sub-label">Máx global</div>
-              <div class="kpi-sub-value">0.6 °C</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- CARD 4: Fallas totales -->
-        <div class="widget card kpi">
-          <div class="kpi-top">
-            <div>
-              <div class="kpi-title">Fallas totales</div>
+              <div class="kpi-title">Incidentes totales</div>
               <div class="kpi-value">9</div>
             </div>
             <div class="kpi-badge danger">Alerta</div>
           </div>
-
           <div class="kpi-divider"></div>
-          <!--
-          <div class="kpi-section-title">Túneles con más fallas</div>-->
           <div class="kpi-chips">
             <div class="chip-dark">PK1_T01 <span>4</span></div>
             <div class="chip-dark">PK1_T03 <span>3</span></div>
@@ -172,7 +129,6 @@
 
         <div class="widget card chart-card">
           <div class="kpi-chart">
-            <!--<canvas id="chartTiempoTunel"></canvas>-->
             <canvas id="chartTiempoTunelMix"></canvas>
           </div>
         </div>
@@ -200,12 +156,7 @@
 
         <div class="widget card chart-card">
           <div class="kpi-chart">
-            <!--<canvas id="chartAsentamientoTipo"></canvas>-->
-            <!--<canvas id="chartFallasTunel"></canvas>-->
-
             <canvas id="chartAsentamientoTop5Grupos"></canvas>
-
-
           </div>
         </div>
 
@@ -251,22 +202,20 @@
                   <circle class="progress-ring-bg" cx="40" cy="40" r="32"></circle>
                   <circle class="progress-ring-fill" id="execEfficiency" cx="40" cy="40" r="32"></circle>
                 </svg>
-                <div class="progress-text" id="execEfficiencyText">87%</div>
+                <div class="progress-text" id="execEfficiencyText">0%</div>
               </div>
-              <div class="metric-context">Tiempo óptimo</div>
             </div>
             <div class="exec-metric">
               <div class="metric-label">Estado Operativo</div>
-              <div class="metric-status" id="execStatus">
-                <div class="status-indicator status-normal"></div>
-                <span class="status-text">Normal</span>
+              <div class="metric-status">
+                <div id="execStatus"></div>
               </div>
-              <div class="metric-context" id="execStatusDetail">2 alertas menores</div>
+              <div class="metric-context" id="execStatusDetail">Cargando...</div>
             </div>
           </div>
         </div>
 
-        <!-- TABLA DE DATOS OPERATIVOS -->
+        <!-- TABLA DE DATOS OPERATIVOS DETALLADOS -->
         <div class="widget card data-table-card">
           <div class="table-header">
             <h3 class="table-title">Datos Operativos Detallados</h3>
@@ -274,29 +223,23 @@
               <button class="table-btn" onclick="exportTableData()">Exportar</button>
             </div>
           </div>
-          <div class="table-container" id="operationalTable"></div>
+          <div class="table-container" id="operationalTable">
+            <!-- Tabla generada dinámicamente -->
+          </div>
         </div>
-
-        
-
-
       </main>
     </div>
 
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@sgratzl/chartjs-chart-boxplot@4"></script>
-
-
-
-    <!-- Materialize JS (CDN) -->
+    <!-- Materialize JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
 
-    <!--Api call python-->
-    <script src="./js/apicall.js"></script>
-    <script src="./js/graficas.js"></script>
+    <!-- Chart.js + Boxplot -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@sgratzl/chartjs-chart-boxplot@4.2.5/build/index.umd.min.js"></script>
 
     <!-- Custom JS -->
-    <script src="js/script.js"></script>
+    <script src="./js/apicall.js"></script>
+    <script src="./js/graficas.js"></script>
+    <script src="./js/script.js"></script>
   </body>
 </html>
