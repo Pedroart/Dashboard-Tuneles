@@ -227,6 +227,56 @@
           </div>
         </div>
 
+        <!-- RESUMEN EJECUTIVO OPERATIVO -->
+        <div class="widget card executive-summary">
+          <div class="exec-header">
+            <h3 class="exec-title">Resumen Ejecutivo</h3>
+            <span class="exec-period">Últimos 7 días</span>
+          </div>
+          <div class="exec-grid">
+            <div class="exec-metric">
+              <div class="metric-label">Producción Semanal</div>
+              <div class="metric-value" id="execDelta">+12%</div>
+              <div class="metric-context">vs Promedio</div>
+            </div>
+            <div class="exec-metric">
+              <div class="metric-label">Cuello de Botella</div>
+              <div class="metric-value tunnel" id="execBottleneck">T02</div>
+              <div class="metric-context" id="execBottleneckTime">5.2h promedio</div>
+            </div>
+            <div class="exec-metric">
+              <div class="metric-label">Eficiencia</div>
+              <div class="metric-progress">
+                <svg class="progress-ring" width="80" height="80">
+                  <circle class="progress-ring-bg" cx="40" cy="40" r="32"></circle>
+                  <circle class="progress-ring-fill" id="execEfficiency" cx="40" cy="40" r="32"></circle>
+                </svg>
+                <div class="progress-text" id="execEfficiencyText">87%</div>
+              </div>
+              <div class="metric-context">Tiempo óptimo</div>
+            </div>
+            <div class="exec-metric">
+              <div class="metric-label">Estado Operativo</div>
+              <div class="metric-status" id="execStatus">
+                <div class="status-indicator status-normal"></div>
+                <span class="status-text">Normal</span>
+              </div>
+              <div class="metric-context" id="execStatusDetail">2 alertas menores</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TABLA DE DATOS OPERATIVOS -->
+        <div class="widget card data-table-card">
+          <div class="table-header">
+            <h3 class="table-title">Datos Operativos Detallados</h3>
+            <div class="table-actions">
+              <button class="table-btn" onclick="exportTableData()">Exportar</button>
+            </div>
+          </div>
+          <div class="table-container" id="operationalTable"></div>
+        </div>
+
         
 
 

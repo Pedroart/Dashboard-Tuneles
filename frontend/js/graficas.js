@@ -290,7 +290,7 @@ function renderTiempoTunelDummy() {
   });
 }
 
-/* Grafica de Numero de Pales por dia - BASTONES DE VARIACION */
+/* Grafica de Numero de Pales por dia - AREA DE DIFERENCIA */
 
 let chartPaletsDia = null;
 
@@ -303,7 +303,6 @@ function renderPaletsPorDiaDummy() {
   const days = 14;
   const labels = [];
   const palets = [];
-  const barData = [];
 
   const today = new Date();
   
@@ -322,23 +321,6 @@ function renderPaletsPorDiaDummy() {
   // Calcular promedio
   const promedio = palets.reduce((a, b) => a + b, 0) / palets.length;
 
-  // Crear datos para los bastones (desde valor anterior hasta valor actual)
-  for (let i = 0; i < palets.length; i++) {
-    const valorActual = palets[i];
-    const valorAnterior = i === 0 ? promedio : palets[i - 1];
-    const isPositive = valorActual >= valorAnterior;
-    
-    barData.push({
-      x: i,
-      y: [valorAnterior, valorActual],
-      actual: valorActual,
-      anterior: valorAnterior,
-      variacion: valorActual - valorAnterior,
-      variacionPct: ((valorActual - valorAnterior) / valorAnterior * 100),
-      isPositive,
-    });
-  }
-
   // Calcular min/max para el eje Y
   const allValues = palets;
   const minValue = Math.min(...allValues);
@@ -347,85 +329,125 @@ function renderPaletsPorDiaDummy() {
   const yMin = Math.max(0, minValue - padding);
   const yMax = maxValue + padding;
 
-  // Plugin para dibujar bastones y línea con gradiente
-  const barStickPlugin = {
-    id: 'barStick',
-    afterDatasetsDraw(chart) {
-      const { ctx, scales } = chart;
+  // Plugin para dibujar áreas de diferencia
+  const differenceAreaPlugin = {
+    id: 'differenceArea',
+    beforeDatasetsDraw(chart) {
+      const { ctx, scales, data } = chart;
       const xScale = scales.x;
       const yScale = scales.y;
-      const activeElements = chart.getActiveElements();
-      const hoveredIndex = activeElements.length > 0 ? activeElements[0].index : -1;
+      const promLine = yScale.getPixelForValue(promedio);
 
       ctx.save();
 
-      // Primero dibujar los bastones
-      barData.forEach((bar, i) => {
-        const x = xScale.getPixelForValue(i);
-        const yStart = yScale.getPixelForValue(bar.y[0]);
-        const yEnd = yScale.getPixelForValue(bar.y[1]);
-        
-        const isHovered = i === hoveredIndex;
-        const color = bar.isPositive ? '#4ade80' : '#ef4444';
-        const glowColor = bar.isPositive ? 'rgba(74, 222, 128, 0.4)' : 'rgba(239, 68, 68, 0.4)';
-        
-        const barWidth = isHovered ? 20 : 16;
-        const glowIntensity = isHovered ? 15 : 10;
-
-        // Dibujar bastón con glow
-        ctx.fillStyle = color;
-        ctx.shadowColor = glowColor;
-        ctx.shadowBlur = glowIntensity;
-        ctx.fillRect(x - barWidth / 2, Math.min(yStart, yEnd), barWidth, Math.abs(yEnd - yStart) || 2);
-
-        // Borde si está en hover
-        if (isHovered) {
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-          ctx.lineWidth = 2;
-          ctx.shadowBlur = 0;
-          ctx.strokeRect(x - barWidth / 2, Math.min(yStart, yEnd), barWidth, Math.abs(yEnd - yStart) || 2);
-        }
-      });
-
-      // Ahora dibujar la línea con gradiente por segmentos
-      ctx.shadowBlur = 0;
-      ctx.lineWidth = 3;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'miter';
-
+      // Dibujar áreas por segmentos
       for (let i = 0; i < palets.length - 1; i++) {
         const x1 = xScale.getPixelForValue(i);
         const y1 = yScale.getPixelForValue(palets[i]);
         const x2 = xScale.getPixelForValue(i + 1);
         const y2 = yScale.getPixelForValue(palets[i + 1]);
 
-        // Color del segmento según si sube o baja
-        const isRising = palets[i + 1] >= palets[i];
-        const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
-        
-        if (isRising) {
-          gradient.addColorStop(0, '#4ade80');
-          gradient.addColorStop(1, '#22c55e');
-        } else {
-          gradient.addColorStop(0, '#ef4444');
-          gradient.addColorStop(1, '#dc2626');
-        }
+        const isAbove1 = palets[i] >= promedio;
+        const isAbove2 = palets[i + 1] >= promedio;
 
-        ctx.strokeStyle = gradient;
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.stroke();
+        // Si ambos puntos están del mismo lado del promedio
+        if (isAbove1 === isAbove2) {
+          const gradient = ctx.createLinearGradient(0, Math.min(y1, y2), 0, promLine);
+          
+          if (isAbove1) {
+            // Verde cuando está arriba
+            gradient.addColorStop(0, 'rgba(74, 222, 128, 0.6)');
+            gradient.addColorStop(1, 'rgba(74, 222, 128, 0.0)');
+          } else {
+            // Rojo cuando está abajo
+            gradient.addColorStop(0, 'rgba(239, 68, 68, 0.0)');
+            gradient.addColorStop(1, 'rgba(239, 68, 68, 0.6)');
+          }
+
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.lineTo(x2, promLine);
+          ctx.lineTo(x1, promLine);
+          ctx.closePath();
+          ctx.fill();
+        } else {
+          // Cruza el promedio - dividir en dos áreas
+          const xIntersect = x1 + (x2 - x1) * Math.abs(palets[i] - promedio) / Math.abs(palets[i] - palets[i + 1]);
+          
+          // Área del primer punto
+          const gradient1 = ctx.createLinearGradient(0, y1, 0, promLine);
+          if (isAbove1) {
+            gradient1.addColorStop(0, 'rgba(74, 222, 128, 0.6)');
+            gradient1.addColorStop(1, 'rgba(74, 222, 128, 0.0)');
+          } else {
+            gradient1.addColorStop(0, 'rgba(239, 68, 68, 0.0)');
+            gradient1.addColorStop(1, 'rgba(239, 68, 68, 0.6)');
+          }
+          
+          ctx.fillStyle = gradient1;
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(xIntersect, promLine);
+          ctx.lineTo(x1, promLine);
+          ctx.closePath();
+          ctx.fill();
+
+          // Área del segundo punto
+          const gradient2 = ctx.createLinearGradient(0, y2, 0, promLine);
+          if (isAbove2) {
+            gradient2.addColorStop(0, 'rgba(74, 222, 128, 0.6)');
+            gradient2.addColorStop(1, 'rgba(74, 222, 128, 0.0)');
+          } else {
+            gradient2.addColorStop(0, 'rgba(239, 68, 68, 0.0)');
+            gradient2.addColorStop(1, 'rgba(239, 68, 68, 0.6)');
+          }
+          
+          ctx.fillStyle = gradient2;
+          ctx.beginPath();
+          ctx.moveTo(xIntersect, promLine);
+          ctx.lineTo(x2, y2);
+          ctx.lineTo(x2, promLine);
+          ctx.closePath();
+          ctx.fill();
+        }
       }
 
-      // Dibujar puntos en cada valor
+      ctx.restore();
+    },
+    afterDatasetsDraw(chart) {
+      const { ctx, scales } = chart;
+      const xScale = scales.x;
+      const yScale = scales.y;
+
+      ctx.save();
+
+      // Dibujar línea principal (cyan brillante)
+      ctx.strokeStyle = '#06b6d4';
+      ctx.lineWidth = 3;
+      ctx.shadowColor = 'rgba(6, 182, 212, 0.5)';
+      ctx.shadowBlur = 10;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      ctx.beginPath();
       palets.forEach((val, i) => {
         const x = xScale.getPixelForValue(i);
         const y = yScale.getPixelForValue(val);
-        const isRising = i === 0 ? true : val >= palets[i - 1];
-        const color = isRising ? '#4ade80' : '#ef4444';
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
 
-        ctx.fillStyle = color;
+      // Dibujar puntos
+      ctx.shadowBlur = 0;
+      palets.forEach((val, i) => {
+        const x = xScale.getPixelForValue(i);
+        const y = yScale.getPixelForValue(val);
+        const isAbove = val >= promedio;
+
+        ctx.fillStyle = isAbove ? '#4ade80' : '#ef4444';
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -504,18 +526,25 @@ function renderPaletsPorDiaDummy() {
               return tooltipItems[0].label;
             },
             label: (c) => {
-              const bar = barData[c.dataIndex];
-              const signo = bar.variacion >= 0 ? "+" : "";
-              const vsProm = ((bar.actual - promedio) / promedio * 100).toFixed(1);
-              const signoP = vsProm > 0 ? "+" : "";
-              const diaRef = c.dataIndex === 0 ? "promedio" : "día anterior";
+              const actual = palets[c.dataIndex];
+              const diferencia = actual - promedio;
+              const signo = diferencia >= 0 ? "+" : "";
+              const pct = ((diferencia / promedio) * 100).toFixed(1);
+              
+              let variacionDiaAnterior = "N/A";
+              if (c.dataIndex > 0) {
+                const anterior = palets[c.dataIndex - 1];
+                const varDia = ((actual - anterior) / anterior * 100).toFixed(1);
+                const signoDia = varDia > 0 ? "+" : "";
+                variacionDiaAnterior = `${signoDia}${varDia}%`;
+              }
 
               return [
-                `Palets del día: ${bar.actual}`,
+                `Palets del día: ${actual}`,
                 `───────────────`,
-                `Valor ${diaRef}: ${bar.anterior.toFixed(0)}`,
-                `Variación: ${signo}${bar.variacion.toFixed(0)} (${signo}${bar.variacionPct.toFixed(1)}%) ${bar.isPositive ? '↑' : '↓'}`,
-                `vs Promedio: ${signoP}${vsProm}%`,
+                `vs Día anterior: ${variacionDiaAnterior}`,
+                `vs Promedio (${promedio.toFixed(0)}): ${signo}${diferencia.toFixed(0)} (${signo}${pct}%)`,
+                `Estado: ${diferencia >= 0 ? '↑ Por encima' : '↓ Por debajo'}`,
               ];
             },
           },
@@ -564,7 +593,7 @@ function renderPaletsPorDiaDummy() {
         },
       },
     },
-    plugins: [barStickPlugin],
+    plugins: [differenceAreaPlugin],
   });
 }
 
@@ -1112,6 +1141,8 @@ function renderAllDummy() {
   renderPaletsPorDiaDashedDummy();
   renderTiempoTunelMinMaxPromDummy();
   renderAsentamientoTop3PorGrupoDummy();
+  renderExecutiveSummary();
+  renderOperationalTable();
 }
 
 // Llama esto cuando cargue tu página
@@ -1204,38 +1235,6 @@ function renderPaletsPorDiaSolidDummy() {
           ctx.shadowBlur = 0;
           ctx.strokeRect(x - barWidth / 2, Math.min(yStart, yEnd), barWidth, Math.abs(yEnd - yStart) || 2);
         }
-      });
-
-      // Línea sólida cyan
-      ctx.shadowBlur = 10;
-      ctx.shadowColor = 'rgba(6, 182, 212, 0.5)';
-      ctx.strokeStyle = '#06b6d4';
-      ctx.lineWidth = 3;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'miter';
-
-      ctx.beginPath();
-      palets.forEach((val, i) => {
-        const x = xScale.getPixelForValue(i);
-        const y = yScale.getPixelForValue(val);
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      });
-      ctx.stroke();
-
-      // Puntos
-      ctx.shadowBlur = 0;
-      palets.forEach((val, i) => {
-        const x = xScale.getPixelForValue(i);
-        const y = yScale.getPixelForValue(val);
-
-        ctx.fillStyle = '#06b6d4';
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(x, y, 5, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
       });
 
       ctx.restore();
@@ -1640,4 +1639,185 @@ function renderPaletsPorDiaDashedDummy() {
     },
     plugins: [barStickPluginDashed],
   });
+}
+
+
+
+/* ==== RESUMEN EJECUTIVO OPERATIVO ==== */
+
+function renderExecutiveSummary() {
+  // Simular datos basados en las gráficas existentes
+  
+  // 1. Delta de Producción Semanal (últimos 7 días vs promedio)
+  const deltaPct = randInt(-15, 25); // Simulado: -15% a +25%
+  const deltaEl = document.getElementById('execDelta');
+  if (deltaEl) {
+    const signo = deltaPct >= 0 ? '+' : '';
+    deltaEl.textContent = `${signo}${deltaPct}%`;
+    deltaEl.className = 'metric-value ' + (deltaPct >= 0 ? 'positive' : 'negative');
+  }
+
+  // 2. Top Cuello de Botella (túnel más lento)
+  const tuneles = ['T01', 'T02', 'T03', 'T04', 'T05', 'T06', 'T07', 'T08', 'T09', 'T10'];
+  const tiempos = tuneles.map(() => randInt(240, 360)); // minutos
+  const maxIndex = tiempos.indexOf(Math.max(...tiempos));
+  const bottleneckTunel = tuneles[maxIndex];
+  const bottleneckTime = (tiempos[maxIndex] / 60).toFixed(1);
+  
+  const bottleneckEl = document.getElementById('execBottleneck');
+  const bottleneckTimeEl = document.getElementById('execBottleneckTime');
+  if (bottleneckEl) bottleneckEl.textContent = bottleneckTunel;
+  if (bottleneckTimeEl) bottleneckTimeEl.textContent = `${bottleneckTime}h promedio`;
+
+  // 3. Eficiencia de Enfriamiento (circular progress)
+  const efficiency = randInt(75, 95); // 75% - 95%
+  const efficiencyEl = document.getElementById('execEfficiency');
+  const efficiencyTextEl = document.getElementById('execEfficiencyText');
+  
+  if (efficiencyEl && efficiencyTextEl) {
+    const circumference = 2 * Math.PI * 32; // radio = 32
+    const offset = circumference - (efficiency / 100) * circumference;
+    efficiencyEl.style.strokeDashoffset = offset;
+    efficiencyTextEl.textContent = `${efficiency}%`;
+    
+    // Color según eficiencia
+    if (efficiency >= 90) {
+      efficiencyEl.style.stroke = '#10b981';
+      efficiencyEl.style.filter = 'drop-shadow(0 0 8px rgba(16, 185, 129, 0.4))';
+    } else if (efficiency >= 80) {
+      efficiencyEl.style.stroke = '#06b6d4';
+      efficiencyEl.style.filter = 'drop-shadow(0 0 8px rgba(6, 182, 212, 0.4))';
+    } else {
+      efficiencyEl.style.stroke = '#fbbf24';
+      efficiencyEl.style.filter = 'drop-shadow(0 0 8px rgba(251, 191, 36, 0.4))';
+    }
+  }
+
+  // 4. Estado Operativo (semáforo basado en fallas)
+  const fallas = randInt(0, 15);
+  const statusEl = document.getElementById('execStatus');
+  const statusDetailEl = document.getElementById('execStatusDetail');
+  
+  if (statusEl && statusDetailEl) {
+    let statusClass, statusText, statusDetail;
+    
+    if (fallas <= 3) {
+      statusClass = 'status-normal';
+      statusText = 'Normal';
+      statusDetail = fallas === 0 ? 'Sin alertas' : `${fallas} alerta${fallas > 1 ? 's' : ''} menor${fallas > 1 ? 'es' : ''}`;
+    } else if (fallas <= 8) {
+      statusClass = 'status-warning';
+      statusText = 'Advertencia';
+      statusDetail = `${fallas} alertas activas`;
+    } else {
+      statusClass = 'status-critical';
+      statusText = 'Crítico';
+      statusDetail = `${fallas} fallas detectadas`;
+    }
+    
+    statusEl.innerHTML = `
+      <div class="status-indicator ${statusClass}"></div>
+      <span class="status-text">${statusText}</span>
+    `;
+    statusDetailEl.textContent = statusDetail;
+  }
+}
+
+
+/* ==== TABLA DE DATOS OPERATIVOS ==== */
+
+function renderOperationalTable() {
+  const container = document.getElementById('operationalTable');
+  if (!container) return;
+
+  const tuneles = ['T01', 'T02', 'T03', 'T04', 'T05', 'T06', 'T07', 'T08', 'T09', 'T10'];
+  const isMP = (t) => ['T01', 'T02', 'T03', 'T04', 'T05'].includes(t);
+
+  // Generar datos simulados para cada túnel
+  const tableData = tuneles.map(tunel => {
+    const tipo = isMP(tunel) ? 'MP' : 'PT';
+    const ocupabilidad = tipo === 'MP' ? randInt(65, 90) : randInt(55, 85);
+    const capacidad = randInt(45, 60);
+    const palets = Math.round((ocupabilidad * capacidad) / 100);
+    const tiempoEnfriamiento = (tipo === 'MP' ? randInt(260, 310) : randInt(210, 260)) / 60;
+    const tiempoAsentamiento = tipo === 'MP' ? randInt(40, 75) : randInt(30, 60);
+    const procesos = randInt(8, 18);
+    const fallas = randInt(0, 5);
+    const eficiencia = randInt(75, 98);
+    const temperatura = (Math.random() * 1.2 - 0.6).toFixed(1);
+
+    return {
+      tunel,
+      tipo,
+      ocupabilidad,
+      capacidad,
+      palets,
+      tiempoEnfriamiento: tiempoEnfriamiento.toFixed(1),
+      tiempoAsentamiento,
+      procesos,
+      fallas,
+      eficiencia,
+      temperatura,
+      estado: fallas === 0 ? 'green' : fallas <= 2 ? 'yellow' : 'red'
+    };
+  });
+
+  // Construir HTML de la tabla
+  let tableHTML = `
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Túnel</th>
+          <th>Tipo</th>
+          <th>Ocupabilidad</th>
+          <th>Palets</th>
+          <th>Capacidad</th>
+          <th>T. Enfriamiento</th>
+          <th>T. Asentamiento</th>
+          <th>Procesos</th>
+          <th>Fallas</th>
+          <th>Eficiencia</th>
+          <th>Temp. Prom.</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  tableData.forEach(row => {
+    const statusText = row.estado === 'green' ? 'Óptimo' : row.estado === 'yellow' ? 'Normal' : 'Alerta';
+    tableHTML += `
+      <tr>
+        <td><strong>${row.tunel}</strong></td>
+        <td><span class="table-badge badge-${row.tipo.toLowerCase()}">${row.tipo}</span></td>
+        <td class="table-number">${row.ocupabilidad}%</td>
+        <td class="table-number">${row.palets}</td>
+        <td class="table-number">${row.capacidad}</td>
+        <td class="table-number">${row.tiempoEnfriamiento}h</td>
+        <td class="table-number">${row.tiempoAsentamiento} min</td>
+        <td class="table-number">${row.procesos}</td>
+        <td class="table-number ${row.fallas > 0 ? 'negative' : ''}">${row.fallas}</td>
+        <td class="table-number ${row.eficiencia >= 90 ? 'positive' : ''}">${row.eficiencia}%</td>
+        <td class="table-number">${row.temperatura}°C</td>
+        <td>
+          <div class="table-status">
+            <span class="status-dot ${row.estado}"></span>
+            <span>${statusText}</span>
+          </div>
+        </td>
+      </tr>
+    `;
+  });
+
+  tableHTML += `
+      </tbody>
+    </table>
+  `;
+
+  container.innerHTML = tableHTML;
+}
+
+// Función para exportar datos (placeholder)
+function exportTableData() {
+  alert('Función de exportación en desarrollo. Los datos se exportarían a CSV/Excel.');
 }
