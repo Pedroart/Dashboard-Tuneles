@@ -1,178 +1,251 @@
 <!DOCTYPE html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Dashboard Túneles</title>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard - Procesos</title>
 
-    <!-- Materialize -->
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"
-    />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"/>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
 
-    <link
-      href="https://fonts.googleapis.com/icon?family=Material+Icons"
-      rel="stylesheet"
-    />
+<body>
+  <nav class="white">
+    <div class="nav-wrapper container">
+      <a href="#" class="brand-logo black-text brand">Procesos</a>
+      <ul class="right">
+        <li>
+          <a class="black-text" href="#!" id="btnNavRefresh">
+            <i class="material-icons left">refresh</i>Actualizar
+          </a>
+        </li>
+      </ul>
+    </div>
+  </nav>
 
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="./css/style.css" />
-  </head>
+  <div class="container page-wrap">
 
-  <body>
-    <!-- Navbar -->
-    <nav class="blue darken-2">
-      <div class="nav-wrapper" style="padding: 0 15px;">
-        <a href="#" class="brand-logo" style="margin-left: 0;">Dashboard Túneles</a>
-      </div>
-    </nav>
+    <!-- FILTROS -->
+    <div class="card">
+      <div class="card-content">
+        <span class="card-title">Búsqueda</span>
 
-    <!-- Layout principal -->
-    <div class="app-layout">
-      <!-- Sidebar -->
-      <aside class="sidebar z-depth-2">
-        <h6>Filtros</h6>
+        <div class="row filters">
+          <div class="input-field col s12 m3">
+            <select id="selPK">
+              <option value="" disabled selected>Seleccione PK</option>
+              <option value="pk1">PK1</option>
+              <option value="pk2">PK2</option>
+            </select>
+            <label>Planta / PK</label>
+          </div>
 
+          <div class="input-field col s12 m3">
+            <select id="selTunel">
+              <option value="" disabled selected>Seleccione túnel</option>
+              <option value="T01">T01</option>
+              <option value="T02">T02</option>
+            </select>
+            <label>Túnel</label>
+          </div>
+
+          <div class="input-field col s12 m3">
+            <input id="dateFrom" type="text" class="datepicker">
+            <label for="dateFrom">Desde</label>
+          </div>
+
+          <div class="input-field col s12 m3">
+            <input id="dateTo" type="text" class="datepicker">
+            <label for="dateTo">Hasta</label>
+          </div>
+        </div>
+
+        <!-- Filtros avanzados -->
+        <div class="row" style="margin-top:-10px;">
+          <div class="col s12">
+            <div class="advanced-header">
+              <span class="advanced-title">Filtros avanzados (opcionales)</span>
+              <a href="#!" id="btnToggleAdvanced" class="btn-flat">
+                <i class="material-icons left">expand_more</i>Mostrar
+              </a>
+            </div>
+
+            <div id="advancedBox" class="advanced-box" style="display:none;">
+              <div class="row">
+                <div class="input-field col s12 m3">
+                  <input id="minPalets" type="number" min="0" step="1">
+                  <label for="minPalets">Min Palets</label>
+                </div>
+                <div class="input-field col s12 m3">
+                  <input id="maxPalets" type="number" min="0" step="1">
+                  <label for="maxPalets">Max Palets</label>
+                </div>
+
+                <div class="input-field col s12 m3">
+                  <input id="minMasa" type="number" min="0" step="0.01">
+                  <label for="minMasa">Min Masa (kg)</label>
+                </div>
+                <div class="input-field col s12 m3">
+                  <input id="maxMasa" type="number" min="0" step="0.01">
+                  <label for="maxMasa">Max Masa (kg)</label>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="input-field col s12 m3">
+                  <input id="minDurMin" type="number" min="0" step="1">
+                  <label for="minDurMin">Min Duración (min)</label>
+                </div>
+                <div class="input-field col s12 m3">
+                  <input id="maxDurMin" type="number" min="0" step="1">
+                  <label for="maxDurMin">Max Duración (min)</label>
+                </div>
+
+                <div class="input-field col s12 m3">
+                  <select id="selEstado">
+                    <option value="" selected>Todos</option>
+                    <option value="open">open</option>
+                    <option value="closed">closed</option>
+                    <option value="error">error</option>
+                  </select>
+                  <label>Estado</label>
+                </div>
+
+                <div class="input-field col s12 m3">
+                  <input id="qText" type="text" placeholder="Ej: tarja, lote, etc.">
+                  <label for="qText">Búsqueda (texto)</label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Acciones -->
         <div class="row">
-          <div class="input-field col s12">
-            <select id="packing">
-              <option value="" disabled selected>Seleccione packing</option>
-            </select>
-            <label>Packing</label>
-          </div>
+          <div class="col s12 actions">
+            <button id="btnBuscar" class="btn waves-effect waves-light">
+              <i class="material-icons left">search</i>Buscar procesos
+            </button>
 
-          <div class="input-field col s12">
-            <select id="temporada" disabled>
-              <option value="" disabled selected>Seleccione temporada</option>
-            </select>
-            <label>Temporada</label>
-          </div>
+            <button id="btnReset" class="btn-flat waves-effect">
+              Limpiar
+            </button>
 
-          <div class="input-field col s12">
-            <select id="fruta" disabled>
-              <option value="" disabled selected>Seleccione fruta</option>
-            </select>
-            <label>Fruta</label>
-          </div>
-        </div>
-
-        <button
-          class="btn waves-effect waves-light blue"
-          onclick="cargarDatos()"
-        >
-          Buscar
-        </button>
-      </aside>
-
-      <!-- Área principal -->
-      <main class="dashboard-grid">
-        <!-- CARD 1: Procesos por tipo de túnel -->
-        <div class="widget card kpi">
-          <div class="kpi-top">
-            <div>
-              <div class="kpi-title">Procesos (cerrados)</div>
-              <div class="kpi-value">128</div>
-            </div>
-            <div class="kpi-badge">Total</div>
-          </div>
-          <div class="kpi-divider"></div>
-          <div class="kpi-subgrid">
-            <div class="kpi-sub">
-              <div class="kpi-sub-label">Materia prima</div>
-              <div class="kpi-sub-value">74</div>
-            </div>
-            <div class="kpi-sub">
-              <div class="kpi-sub-label">Producto terminado</div>
-              <div class="kpi-sub-value">54</div>
+            <div class="right status-chip">
+              <span id="searchStatus" class="grey-text text-darken-1">—</span>
             </div>
           </div>
         </div>
 
-        <!-- CARD 2: Tiempo promedio por túnel -->
-        <div class="widget card kpi">
-          <div class="kpi-top">
-            <div>
-              <div class="kpi-title">Tiempo de enfriamiento</div>
-              <div class="kpi-value">4.2 <span class="kpi-unit">h</span></div>
-            </div>
-            <div class="kpi-badge">Promedio</div>
-          </div>
-          <div class="kpi-divider"></div>
-          <div class="kpi-subgrid">
-            <div class="kpi-sub">
-              <div class="kpi-sub-label">Materia prima</div>
-              <div class="kpi-sub-value">4.8 h</div>
-            </div>
-            <div class="kpi-sub">
-              <div class="kpi-sub-label">Producto terminado</div>
-              <div class="kpi-sub-value">3.6 h</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- CARD 3: Incidentes totales -->
-        <div class="widget card kpi">
-          <div class="kpi-top">
-            <div>
-              <div class="kpi-title">Incidentes totales</div>
-              <div class="kpi-value">9</div>
-            </div>
-            <div class="kpi-badge danger">Alerta</div>
-          </div>
-          <div class="kpi-divider"></div>
-          <div class="kpi-chips">
-            <div class="chip-dark">PK1_T01 <span>4</span></div>
-            <div class="chip-dark">PK1_T03 <span>3</span></div>
-            <div class="chip-dark">PK2_T02 <span>2</span></div>
-          </div>
-        </div>
-
-        <div class="widget card chart-card">
-          <div class="kpi-chart">
-            <canvas id="chartTiempoTunelMix"></canvas>
-          </div>
-        </div>
-
-
-        <div class="widget card chart-card">
-          <div class="kpi-chart">
-            <canvas id="chartAsentamientoTop5Grupos"></canvas>
-          </div>
-        </div>
-
-        <div class="widget card chart-card">
-          <div class="kpi-chart">
-            <canvas id="chartPaletsDia"></canvas>
-          </div>
-        </div>
-
-
-
-        <!-- TABLA DE DATOS OPERATIVOS DETALLADOS -->
-        <div class="widget card data-table-card">
-          <div class="table-header">
-            <h3 class="table-title">Datos Operativos Detallados</h3>
-            <div class="table-actions">
-              <button class="table-btn" onclick="exportTableData()">Exportar</button>
-            </div>
-          </div>
-          <div class="table-container" id="operationalTable">
-            <!-- Tabla generada dinámicamente -->
-          </div>
-        </div>
-      </main>
+      </div>
     </div>
 
-    <!-- Materialize JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <!-- RESULTADOS: LISTA DE PROCESOS -->
+    <div class="card">
+      <div class="card-content">
+        <span class="card-title">Procesos encontrados</span>
 
-    <!-- Chart.js + Boxplot -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@sgratzl/chartjs-chart-boxplot@4.2.5/build/index.umd.min.js"></script>
+        <div class="table-wrap">
+          <table class="highlight responsive-table">
+            <thead>
+              <tr>
+                <th>Inicio</th>
+                <th>Fin</th>
+                <th>Estado</th>
+                <th>Palets</th>
+                <th>Masa (kg)</th>
+                <th>Duración (min)</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tbodyProcesos">
+              <tr><td colspan="7" class="grey-text">Aún no has buscado.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
 
-    <!-- Custom JS -->
-    <script src="./js/apicall.js"></script>
-    <script src="./js/graficas.js"></script>
-    <script src="./js/script.js"></script>
-  </body>
+    <!-- DETALLE (solo cuando selecciones un proceso) -->
+    <div class="card">
+      <div class="card-content">
+        <div class="detail-header">
+          <span class="card-title" style="margin:0;">Detalle del proceso</span>
+          <span id="selectedProcessTag" class="new badge grey" data-badge-caption="">Sin selección</span>
+        </div>
+
+        <!-- KPIs -->
+        <div class="row" style="margin-top:10px;">
+          <div class="col s12 m6 l3">
+            <div class="card card-kpi">
+              <div class="card-content">
+                <div class="kpi-title">Temp. Promedio</div>
+                <div id="kpiTempProm" class="kpi-value">—</div>
+                <div class="kpi-sub">°C</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col s12 m6 l3">
+            <div class="card card-kpi">
+              <div class="card-content">
+                <div class="kpi-title">Temp. Máxima</div>
+                <div id="kpiTempMax" class="kpi-value">—</div>
+                <div class="kpi-sub">°C</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col s12 m6 l3">
+            <div class="card card-kpi">
+              <div class="card-content">
+                <div class="kpi-title">Temp. Mínima</div>
+                <div id="kpiTempMin" class="kpi-value">—</div>
+                <div class="kpi-sub">°C</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col s12 m6 l3">
+            <div class="card card-kpi">
+              <div class="card-content">
+                <div class="kpi-title">Faults</div>
+                <div id="kpiFaults" class="kpi-value">—</div>
+                <div class="kpi-sub">eventos</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="row">
+          <div class="col s12 l8">
+            <div class="card chart-card">
+              <div class="chart-title">Temperatura en el tiempo</div>
+              <div class="canvas-wrap">
+                <canvas id="chartTemp"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="col s12 l4">
+            <div class="card chart-card">
+              <div class="chart-title">Distribución por estado (demo)</div>
+              <div class="canvas-wrap">
+                <canvas id="chartEstado"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="./app.js"></script>
+</body>
 </html>
