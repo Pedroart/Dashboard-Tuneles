@@ -133,26 +133,6 @@
           </div>
         </div>
 
-        <div class="widget card chart-card">
-          <div class="liquid-gauge-container" id="liquidGaugeContainer">
-            <div class="gauge-selector">
-              <label>Seleccionar Túnel:</label>
-              <select id="tunelSelector" class="browser-default">
-                <option value="T01">T01 - Materia Prima</option>
-                <option value="T02">T02 - Materia Prima</option>
-                <option value="T03">T03 - Materia Prima</option>
-                <option value="T04">T04 - Materia Prima</option>
-                <option value="T05">T05 - Materia Prima</option>
-                <option value="T06">T06 - Producto Terminado</option>
-                <option value="T07">T07 - Producto Terminado</option>
-                <option value="T08">T08 - Producto Terminado</option>
-                <option value="T09">T09 - Producto Terminado</option>
-                <option value="T10">T10 - Producto Terminado</option>
-              </select>
-            </div>
-            <div class="gauge-display" id="gaugeDisplay"></div>
-          </div>
-        </div>
 
         <div class="widget card chart-card">
           <div class="kpi-chart">
@@ -166,54 +146,7 @@
           </div>
         </div>
 
-        <div class="widget card chart-card">
-          <div class="kpi-chart">
-            <canvas id="chartPaletsDiaSolid"></canvas>
-          </div>
-        </div>
 
-        <div class="widget card chart-card">
-          <div class="kpi-chart">
-            <canvas id="chartPaletsDiaDashed"></canvas>
-          </div>
-        </div>
-
-        <!-- RESUMEN EJECUTIVO OPERATIVO -->
-        <div class="widget card executive-summary">
-          <div class="exec-header">
-            <h3 class="exec-title">Resumen Ejecutivo</h3>
-            <span class="exec-period">Últimos 7 días</span>
-          </div>
-          <div class="exec-grid">
-            <div class="exec-metric">
-              <div class="metric-label">Producción Semanal</div>
-              <div class="metric-value" id="execDelta">+12%</div>
-              <div class="metric-context">vs Promedio</div>
-            </div>
-            <div class="exec-metric">
-              <div class="metric-label">Cuello de Botella</div>
-              <div class="metric-value tunnel" id="execBottleneck">T02</div>
-              <div class="metric-context" id="execBottleneckTime">5.2h promedio</div>
-            </div>
-            <div class="exec-metric">
-              <div class="metric-label">Eficiencia</div>
-              <div class="metric-progress">
-                <svg class="progress-ring" width="80" height="80">
-                  <circle class="progress-ring-bg" cx="40" cy="40" r="32"></circle>
-                  <circle class="progress-ring-fill" id="execEfficiency" cx="40" cy="40" r="32"></circle>
-                </svg>
-                <div class="progress-text" id="execEfficiencyText">0%</div>
-              </div>
-            </div>
-            <div class="exec-metric">
-              <div class="metric-label">Estado Operativo</div>
-              <div class="metric-status">
-                <div id="execStatus"></div>
-              </div>
-              <div class="metric-context" id="execStatusDetail">Cargando...</div>
-            </div>
-          </div>
-        </div>
 
         <!-- TABLA DE DATOS OPERATIVOS DETALLADOS -->
         <div class="widget card data-table-card">
