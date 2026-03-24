@@ -1,0 +1,1064 @@
+<!doctype html>
+<!-- saved from url=(0045) -->
+<html lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
+    />
+    <title>Friomamut</title>
+    <link rel="stylesheet" href="./Friomamut_files/materialize.css" />
+    <link rel="stylesheet" href="./Friomamut_files/site.css" />
+    <link rel="stylesheet" href="./Friomamut_files/Friomamut.styles.css" />
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons+Round"
+      rel="stylesheet"
+    />
+    <link href="https://pedregal.friomamut.pe/img/logo.png" rel="icon" />
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+    <style>
+      .card-kpi {
+        min-height: 280px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .card-kpi .title {
+        margin-bottom: 12px;
+      }
+
+      .kpi-main {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 90px;
+        margin-bottom: 16px;
+      }
+
+      .kpi-value {
+        font-size: 56px;
+        font-weight: 700;
+        line-height: 1;
+        text-align: center;
+      }
+
+      .kpi-list {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        margin-top: 14px;
+      }
+
+      .kpi-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .kpi-label {
+        font-weight: 700;
+      }
+
+      .kpi-detail {
+        font-weight: 700;
+        text-align: right;
+        white-space: nowrap;
+      }
+
+      .kpi-split {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-top: 14px;
+      }
+
+      .kpi-box .indicator {
+        margin-top: 8px;
+      }
+
+      .kpi-footer {
+        margin-top: 18px;
+      }
+
+      .kpi-note {
+        margin-top: 6px;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1.2;
+      }
+
+      .data-connectivity .legend {
+        margin-top: 18px;
+      }
+    </style>
+  </head>
+  <body>
+    <ul
+      b-iwtiix1h36=""
+      id="slide-out"
+      class="sidenav sidenav-fixed"
+      style="transform: translateX(-105%)"
+    >
+      <li b-iwtiix1h36="" class="no-padding">
+        <div b-iwtiix1h36="" class="account">
+          <div b-iwtiix1h36="" class="circle">PA</div>
+          <div b-iwtiix1h36="" class="groupment">
+            <div b-iwtiix1h36="" class="name">Pedro Arteta Flores</div>
+          </div>
+          <div b-iwtiix1h36="" class="options">
+            <i b-iwtiix1h36="" class="material-icons-outlined">notifications</i>
+            <div b-iwtiix1h36="" class="indicator"></div>
+          </div>
+
+          <div b-iwtiix1h36="" class="list">
+            <a b-iwtiix1h36="" class="element">Gestionar cuenta</a>
+            <a
+              class="element"
+              href="https://pedregal.friomamut.pe/Account/Logout"
+              >Desconectarme</a
+            >
+          </div>
+        </div>
+      </li>
+      <li b-iwtiix1h36="">
+        <a
+          b-iwtiix1h36=""
+          href="https://pedregal.friomamut.pe/Layout/Module"
+          class="waves-effect"
+          ><i b-iwtiix1h36="" class="material-icons-outlined">view_quilt</i
+          >Layout</a
+        >
+      </li>
+      <li b-iwtiix1h36="">
+        <a
+          b-iwtiix1h36=""
+          href="https://pedregal.friomamut.pe/Dashboard/Overview"
+          class="waves-effect"
+          ><i b-iwtiix1h36="" class="material-icons-outlined">dashboard</i
+          >Overview</a
+        >
+      </li>
+      <li b-iwtiix1h36="">
+        <a
+          b-iwtiix1h36=""
+          href="https://pedregal.friomamut.pe/Process/Manage"
+          class="waves-effect"
+          ><i b-iwtiix1h36="" class="material-icons-outlined">schema</i
+          >Procesos</a
+        >
+      </li>
+      <li b-iwtiix1h36="" class="no-padding">
+        <ul b-iwtiix1h36="" class="collapsible collapsible-accordion">
+          <li b-iwtiix1h36="">
+            <a b-iwtiix1h36="" class="collapsible-header active" tabindex="0"
+              ><i b-iwtiix1h36="" class="material-icons">bar_chart</i
+              >Reportes</a
+            >
+            <div
+              b-iwtiix1h36=""
+              class="collapsible-body"
+              style="display: block; background: rgba(255, 255, 255, 0.03)"
+            >
+              <ul b-iwtiix1h36="">
+                <li b-iwtiix1h36="" class="active">
+                  <a b-iwtiix1h36="" href=""
+                    ><i b-iwtiix1h36="" class="material-icons-outlined"
+                      >schema</i
+                    >Procesos</a
+                  >
+                </li>
+              </ul>
+            </div>
+          </li>
+        </ul>
+      </li>
+    </ul>
+
+    <div b-iwtiix1h36="" class="layout-container">
+      <nav b-iwtiix1h36="">
+        <a
+          b-iwtiix1h36=""
+          href="#"
+          data-target="slide-out"
+          class="sidenav-trigger"
+          ><i b-iwtiix1h36="" class="material-icons">drag_handle</i></a
+        >
+        <span b-iwtiix1h36="">Procesos</span>
+
+        <div b-iwtiix1h36="" class="wrapper-button">
+          <div b-iwtiix1h36="" class="button waves-effect waves-light">
+            <svg
+              b-iwtiix1h36=""
+              width="25"
+              height="25"
+              viewBox="0 0 25 25"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                b-iwtiix1h36=""
+                opacity="0.4"
+                d="M11.1437 16.7788H4.67114"
+                stroke="#eee"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              ></path>
+              <path
+                b-iwtiix1h36=""
+                fill-rule="evenodd"
+                clip-rule="evenodd"
+                d="M15.2051 16.7797C15.2051 18.8214 15.886 19.5014 17.9269 19.5014C19.9678 19.5014 20.6487 18.8214 20.6487 16.7797C20.6487 14.7379 19.9678 14.0579 17.9269 14.0579C15.886 14.0579 15.2051 14.7379 15.2051 16.7797Z"
+                stroke="white"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              ></path>
+              <path
+                b-iwtiix1h36=""
+                opacity="0.4"
+                d="M14.1768 9.29014H20.6484"
+                stroke="#eee"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              ></path>
+              <path
+                b-iwtiix1h36=""
+                fill-rule="evenodd"
+                clip-rule="evenodd"
+                d="M10.1154 9.28881C10.1154 7.24791 9.43448 6.56702 7.39358 6.56702C5.35179 6.56702 4.6709 7.24791 4.6709 9.28881C4.6709 11.3306 5.35179 12.0106 7.39358 12.0106C9.43448 12.0106 10.1154 11.3306 10.1154 9.28881Z"
+                stroke="white"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              ></path>
+            </svg>
+          </div>
+        </div>
+        <div b-iwtiix1h36="" class="wrapper-download">
+          <div
+            b-iwtiix1h36=""
+            class="download waves-effect waves-green"
+            data-action=""
+          >
+            <img src="./Friomamut_files/excel.png" />
+          </div>
+        </div>
+      </nav>
+
+      <div class="reports">
+        <div class="padding">
+          <div class="row">
+            <!-- CARD 1 -->
+            <div class="col l4 m4 s12">
+              <div class="component data-process card-kpi">
+                <div class="title">
+                  <span>Batch realizados</span>
+                </div>
+
+                <div class="kpi-main">
+                  <div class="kpi-value">125</div>
+                </div>
+
+                <div class="content">
+                  <div class="kpi-list">
+                    <div class="kpi-row">
+                      <span class="kpi-label">PK01</span>
+                      <span class="kpi-detail">52 · 41.6%</span>
+                    </div>
+                    <div class="kpi-row">
+                      <span class="kpi-label">PK02</span>
+                      <span class="kpi-detail">38 · 30.4%</span>
+                    </div>
+                    <div class="kpi-row">
+                      <span class="kpi-label">PK03</span>
+                      <span class="kpi-detail">35 · 28.0%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- CARD 2 -->
+            <div class="col l4 m4 s12">
+              <div class="component card-kpi">
+                <div class="title">
+                  <span>Tiempo de enfriamiento promedio</span>
+                </div>
+
+                <div class="kpi-main">
+                  <div class="kpi-value">18.4 h</div>
+                </div>
+
+                <div class="content">
+                  <div class="kpi-split">
+                    <div class="kpi-box">
+                      <div class="subtext">Mínimo</div>
+                      <div class="indicator">
+                        <div class="circle green"></div>
+                        <span>15.2 h</span>
+                      </div>
+                    </div>
+
+                    <div class="kpi-box">
+                      <div class="subtext">Máximo</div>
+                      <div class="indicator">
+                        <div class="circle blue"></div>
+                        <span>21.7 h</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- CARD 3 -->
+            <div class="col l4 m4 s12">
+              <div class="component data-connectivity card-kpi">
+                <div class="title">
+                  <span>Estado de sensores</span>
+                </div>
+
+                <div class="kpi-main">
+                  <div class="kpi-value">84%</div>
+                </div>
+
+                <div class="content">
+                  <div class="kpi-list">
+                    <div class="kpi-row">
+                      <div class="indicator">
+                        <div class="circle green"></div>
+                        <span>Operativos</span>
+                      </div>
+                      <span class="kpi-detail">84%</span>
+                    </div>
+
+                    <div class="kpi-row">
+                      <div class="indicator">
+                        <div class="circle grey"></div>
+                        <span>Inoperativos</span>
+                      </div>
+                      <span class="kpi-detail">16%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col l6 m6 s12">
+              <div class="component">
+                <div class="title">
+                  <span>PROMEDIO DE HORAS DE ENFRIAMIENTO POR TÚNELES</span>
+                </div>
+
+                <div id="chart-enfriamiento"></div>
+              </div>
+            </div>
+            <div class="col l6 m6 s12">
+              <div class="component">
+                <div class="title">
+                  <span>Actividad de túneles (batch/día)</span>
+                </div>
+
+                <div id="chart-batch-tuneles"></div>
+              </div>
+            </div>
+            <div class="col l6 m6 s12">
+  <div class="component">
+    <div class="title">
+      <span>Sensores habilitados por túnel y packing</span>
+    </div>
+
+    <div id="chart-sensores-tuneles"></div>
+  </div>
+</div>
+          </div>
+        </div>
+      </div>
+      <div class="wrapper-context">
+        <div class="context">
+          <div class="padding">
+            <div class="header">
+              <div class="button">
+                <i class="material-icons">chevron_left</i>
+              </div>
+              <span>Procesos</span>
+            </div>
+
+            <div class="content">
+              <div class="wrapper-select">
+                <label for="periodType">Tipo de consulta</label>
+                <div class="select-wrapper">
+                  <select id="periodType">
+                    <option value="custom" selected>Personalizado</option>
+                    <option value="month">Por mes</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- BLOQUE PERSONALIZADO -->
+              <div class="customizable row" id="customBlock">
+                <div class="col s6 col-left">
+                  <div class="wrapper-input">
+                    <label for="init" class="active">Inicio</label>
+                    <input type="date" id="init" autocomplete="off" />
+                  </div>
+                </div>
+                <div class="col s6 col-right">
+                  <div class="wrapper-input">
+                    <label for="finish" class="active">Final</label>
+                    <input type="date" id="finish" autocomplete="off" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- BLOQUE POR MES -->
+              <div id="monthBlock" style="display: none">
+                <div class="customizable row">
+                  <div class="col s6 col-left">
+                    <div class="wrapper-select">
+                      <label for="month">Mes</label>
+                      <div class="select-wrapper">
+                        <select id="month">
+                          <option value="1">Enero</option>
+                          <option value="2">Febrero</option>
+                          <option value="3">Marzo</option>
+                          <option value="4">Abril</option>
+                          <option value="5">Mayo</option>
+                          <option value="6">Junio</option>
+                          <option value="7">Julio</option>
+                          <option value="8">Agosto</option>
+                          <option value="9">Septiembre</option>
+                          <option value="10">Octubre</option>
+                          <option value="11">Noviembre</option>
+                          <option value="12">Diciembre</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="col s6 col-right">
+                    <div class="wrapper-select">
+                      <label for="year">Año</label>
+                      <div class="select-wrapper">
+                        <select id="year">
+                          <option value="2026" selected>2026</option>
+                          <option value="2025">2025</option>
+                          <option value="2024">2024</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="wrapper-filter">
+                <div class="filter waves-effect waves-blue">
+                  <i class="material-icons-outlined">search</i>
+                  <span>Encontrar</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div b-iwtiix1h36="" class="wrapper-coating">
+      <div b-iwtiix1h36="" class="coating">
+        <div b-iwtiix1h36="" class="header">
+          <i b-iwtiix1h36="" class="material-icons-outlined">boy</i>
+          <span b-iwtiix1h36="">Ajustes</span>
+          <div b-iwtiix1h36="" class="button">
+            <i b-iwtiix1h36="" class="material-icons">keyboard_arrow_down</i>
+          </div>
+        </div>
+        <div b-iwtiix1h36="" class="content">
+          <div class="configuration">
+            <div class="account">
+              <div class="circle">
+                <span>PA</span>
+              </div>
+              <div class="button waves-effect waves-blue">
+                <i class="material-icons-outlined">imagesearch_roller</i>
+              </div>
+
+              <div class="publish waves-effect waves-light">
+                <span>Publicar</span>
+              </div>
+
+              <input
+                type="file"
+                id="avatar"
+                hidden="hidden"
+                accept=".jpg, .jpeg, .png"
+              />
+
+              <div class="list">
+                <div class="element">
+                  <label for="avatar">Modificar avatar</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="name">Pedro Arteta Flores</div>
+            <div class="email">parteta@friopacking.pe</div>
+          </div>
+
+          <div class="manage">
+            <div
+              class="element waves-effect waves-blue"
+              data-context='[{"Name":"UGVkcm8=","LastName":"QXJ0ZXRhIEZsb3Jlcw==","Email":"parteta@friopacking.pe"}]'
+              data-action="update"
+            >
+              <i class="material-icons-outlined">manage_accounts</i>
+              <span>Modificar datos</span>
+            </div>
+            <div class="element waves-effect waves-blue" data-action="security">
+              <i class="material-icons-outlined">lock</i>
+              <span>Cambiar contraseña</span>
+            </div>
+          </div>
+
+          <div class="handle">
+            <div class="wrapper-input">
+              <label for="name" class="active">Nombres</label>
+              <input
+                type="text"
+                placeholder="John"
+                id="name"
+                autocomplete="off"
+              />
+              <div class="verify"></div>
+            </div>
+            <div class="wrapper-input">
+              <label for="lastname" class="active">Apellidos</label>
+              <input
+                type="text"
+                placeholder="Doe"
+                id="lastname"
+                autocomplete="off"
+              />
+              <div class="verify"></div>
+            </div>
+            <div class="wrapper-input lasted">
+              <label for="email" class="active">Correo electrónico</label>
+              <input
+                type="text"
+                placeholder="example@example.com"
+                id="email"
+                autocomplete="off"
+              />
+              <div class="verify"></div>
+            </div>
+            <div class="wrapper-button">
+              <div
+                class="button flat waves-effect waves-blue"
+                data-context=""
+                data-action=""
+              >
+                <i class="material-icons">auto_fix_normal</i>
+                <div class="title">Modificar</div>
+              </div>
+
+              <div class="cancel waves-effect waves-light">
+                <div class="title">Cancelar</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="./Friomamut_files/jquery.min.js.descarga"></script>
+    <script src="./Friomamut_files/materialize.js.descarga"></script>
+    <script src="./Friomamut_files/chart.js.descarga"></script>
+    <script src="./Friomamut_files/chartplugin.js.descarga"></script>
+    <script src="./Friomamut_files/interact.js.descarga"></script>
+    <script src="./Friomamut_files/site.js.descarga"></script>
+    <script src="./Friomamut_files/account.js.descarga"></script>
+    <script src="./Friomamut_files/xlsx.full.min.js.descarga"></script>
+
+    <script src="./Friomamut_files/reports-process.js.descarga"></script>
+    <div
+      class="modal datepicker-modal"
+      id="modal-149e57fd-0cd8-a835-6542-4afd397f9db8"
+      tabindex="0"
+    >
+      <div class="modal-content datepicker-container">
+        <div class="datepicker-date-display">
+          <span class="year-text">2026</span
+          ><span class="date-text">Dom, Mar 1</span>
+        </div>
+        <div class="datepicker-calendar-container">
+          <div class="datepicker-calendar"></div>
+          <div class="datepicker-footer">
+            <button
+              class="btn-flat datepicker-clear waves-effect"
+              style="visibility: hidden"
+              type="button"
+            ></button>
+            <div class="confirmation-btns">
+              <button
+                class="btn-flat datepicker-cancel waves-effect"
+                type="button"
+              >
+                Cancelar</button
+              ><button
+                class="btn-flat datepicker-done waves-effect"
+                type="button"
+              >
+                Ok
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div
+      class="modal datepicker-modal"
+      id="modal-c0e1d2e4-1174-86cb-03a8-633a936ef944"
+      tabindex="0"
+    >
+      <div class="modal-content datepicker-container">
+        <div class="datepicker-date-display">
+          <span class="year-text">2026</span
+          ><span class="date-text">Lun, Mar 23</span>
+        </div>
+        <div class="datepicker-calendar-container">
+          <div class="datepicker-calendar"></div>
+          <div class="datepicker-footer">
+            <button
+              class="btn-flat datepicker-clear waves-effect"
+              style="visibility: hidden"
+              type="button"
+            ></button>
+            <div class="confirmation-btns">
+              <button
+                class="btn-flat datepicker-cancel waves-effect"
+                type="button"
+              >
+                Cancelar</button
+              ><button
+                class="btn-flat datepicker-done waves-effect"
+                type="button"
+              >
+                Ok
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidenav-overlay" style="display: none; opacity: 0"></div>
+    <div class="drag-target"></div>
+
+    <script>
+      const periodType = document.getElementById("periodType");
+      const customBlock = document.getElementById("customBlock");
+      const monthBlock = document.getElementById("monthBlock");
+
+      periodType.addEventListener("change", function () {
+        if (this.value === "custom") {
+          customBlock.style.display = "flex";
+          monthBlock.style.display = "none";
+        } else {
+          customBlock.style.display = "none";
+          monthBlock.style.display = "block";
+        }
+      });
+    </script>
+
+    <script>
+      var options = {
+        chart: {
+          type: "line",
+          height: 300,
+          toolbar: { show: false },
+        },
+
+        series: [
+          {
+            name: "PACKING 1",
+            data: [
+              7, 8, 6.5, 6.5, 6.7, 7, 6.4, 6.4, 6.3, 6.6, 6.4, 7.1, 7.0, 6.6,
+              7.2, 7.4, 6.7, 6.9,
+            ],
+          },
+          {
+            name: "PACKING 2",
+            data: [9, 8.5, 9, 8.2, 8.7, 8.8],
+          },
+          {
+            name: "PACKING 3",
+            data: [
+              9.5, 10.2, 9.7, 10.3, 10.4, 9.8, 10.5, 9.9, 10.2, 10.6, 10.1,
+              10.4, 11,
+            ],
+          },
+        ],
+
+        xaxis: {
+          categories: [
+            "T01",
+            "T02",
+            "T03",
+            "T04",
+            "T05",
+            "T06",
+            "T07",
+            "T08",
+            "T09",
+            "T10",
+            "T11",
+            "T12",
+            "T13",
+            "T14",
+            "T15",
+            "T16",
+            "T17",
+            "T18",
+          ],
+        },
+
+        yaxis: {
+          min: 0,
+          max: 12,
+          labels: {
+            formatter: function (val) {
+              let h = Math.floor(val);
+              let m = Math.round((val - h) * 60);
+              return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+            },
+          },
+        },
+
+        stroke: {
+          width: 3,
+          curve: "smooth",
+        },
+
+        colors: ["#5b9bd5", "#ed7d31", "#a5a5a5"],
+
+        markers: {
+          size: 4,
+        },
+
+        tooltip: {
+          y: {
+            formatter: function (val) {
+              let h = Math.floor(val);
+              let m = Math.round((val - h) * 60);
+              return `${h}h ${m}m`;
+            },
+          },
+        },
+
+        legend: {
+          position: "bottom",
+        },
+
+        grid: {
+          borderColor: "rgba(255,255,255,0.08)",
+        },
+      };
+
+      var chart = new ApexCharts(
+        document.querySelector("#chart-enfriamiento"),
+        options,
+      );
+      chart.render();
+    </script>
+    <script>
+var optionsBatchTuneles = {
+    chart: {
+        type: 'bar',
+        height: 320,
+        stacked: true,
+        toolbar: { show: false }
+    },
+
+    series: [
+        {
+            name: 'PACKING 1',
+            data: [2, 3, 3, 2, 2, 2, 3, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 3]
+        },
+        {
+            name: 'PACKING 2',
+            data: [2, 2, 3, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 0]
+        },
+        {
+            name: 'PACKING 3',
+            data: [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0]
+        }
+    ],
+
+    xaxis: {
+        categories: [
+            'T01','T02','T03','T04','T05','T06','T07','T08','T09',
+            'T10','T11','T12','T13','T14','T15','T16','T17','T18'
+        ],
+        labels: {
+            style: {
+                fontSize: '12px'
+            }
+        }
+    },
+
+    yaxis: {
+        min: 0,
+        max: 8,
+        tickAmount: 4,
+        labels: {
+            formatter: function (val) {
+                return Math.round(val);
+            }
+        }
+    },
+
+    plotOptions: {
+        bar: {
+            horizontal: false,
+            columnWidth: '55%',
+            borderRadius: 0,
+            dataLabels: {
+                position: 'center'
+            }
+        }
+    },
+
+    dataLabels: {
+        enabled: true,
+        formatter: function (val) {
+            return val > 0 ? val : '';
+        },
+        style: {
+            colors: ['#ffffff'],
+            fontSize: '12px',
+            fontWeight: 700
+        }
+    },
+
+    colors: [
+        '#52b788', // PACKING 1
+        '#2d6a6f', // PACKING 2
+        '#84a98c'  // PACKING 3
+    ],
+
+    legend: {
+        position: 'bottom'
+    },
+
+    grid: {
+        borderColor: 'rgba(255,255,255,0.08)'
+    },
+
+    tooltip: {
+        shared: true,
+        intersect: false,
+        y: {
+            formatter: function (val) {
+                return val + ' batch';
+            }
+        }
+    }
+};
+
+var chartBatchTuneles = new ApexCharts(
+    document.querySelector("#chart-batch-tuneles"),
+    optionsBatchTuneles
+);
+chartBatchTuneles.render();
+</script>
+<div class="col l6 m6 s12">
+  <div class="component">
+    <div class="title">
+      <span>Sensores habilitados por túnel y packing</span>
+    </div>
+
+    <div id="chart-sensores-tuneles"></div>
+  </div>
+</div>
+
+<script>
+var optionsSensoresTuneles = {
+    chart: {
+        type: 'heatmap',
+        height: 320,
+        toolbar: { show: false }
+    },
+
+    series: [
+        {
+            name: 'PACKING 1',
+            data: [
+                { x: 'T01', y: 8 },
+                { x: 'T02', y: 7 },
+                { x: 'T03', y: 8 },
+                { x: 'T04', y: 6 },
+                { x: 'T05', y: 5 },
+                { x: 'T06', y: 8 },
+                { x: 'T07', y: 7 },
+                { x: 'T08', y: 8 },
+                { x: 'T09', y: 6 },
+                { x: 'T10', y: 8 },
+                { x: 'T11', y: 7 },
+                { x: 'T12', y: 8 },
+                { x: 'T13', y: 5 },
+                { x: 'T14', y: 6 },
+                { x: 'T15', y: 7 },
+                { x: 'T16', y: 8 },
+                { x: 'T17', y: 6 },
+                { x: 'T18', y: 7 }
+            ]
+        },
+        {
+            name: 'PACKING 2',
+            data: [
+                { x: 'T01', y: 6 },
+                { x: 'T02', y: 8 },
+                { x: 'T03', y: 7 },
+                { x: 'T04', y: 5 },
+                { x: 'T05', y: 6 },
+                { x: 'T06', y: 8 },
+                { x: 'T07', y: 8 },
+                { x: 'T08', y: 7 },
+                { x: 'T09', y: 6 },
+                { x: 'T10', y: 8 },
+                { x: 'T11', y: 8 },
+                { x: 'T12', y: 7 },
+                { x: 'T13', y: 6 },
+                { x: 'T14', y: 5 },
+                { x: 'T15', y: 8 },
+                { x: 'T16', y: 7 },
+                { x: 'T17', y: 6 },
+                { x: 'T18', y: 8 }
+            ]
+        },
+        {
+            name: 'PACKING 3',
+            data: [
+                { x: 'T01', y: 7 },
+                { x: 'T02', y: 6 },
+                { x: 'T03', y: 8 },
+                { x: 'T04', y: 8 },
+                { x: 'T05', y: 7 },
+                { x: 'T06', y: 6 },
+                { x: 'T07', y: 8 },
+                { x: 'T08', y: 7 },
+                { x: 'T09', y: 8 },
+                { x: 'T10', y: 6 },
+                { x: 'T11', y: 7 },
+                { x: 'T12', y: 8 },
+                { x: 'T13', y: 0 },
+                { x: 'T14', y: 0 },
+                { x: 'T15', y: 0 },
+                { x: 'T16', y: 0 },
+                { x: 'T17', y: 0 },
+                { x: 'T18', y: 0 }
+            ]
+        }
+    ],
+
+    dataLabels: {
+        enabled: true,
+        style: {
+            colors: ['#ffffff'],
+            fontSize: '12px',
+            fontWeight: 700
+        }
+    },
+
+    plotOptions: {
+        heatmap: {
+            shadeIntensity: 0.6,
+            radius: 4,
+            useFillColorAsStroke: false,
+            colorScale: {
+                ranges: [
+                    {
+                        from: 0,
+                        to: 0,
+                        name: 'Sin sensores',
+                        color: '#2c2c2c'
+                    },
+                    {
+                        from: 1,
+                        to: 3,
+                        name: 'Bajo',
+                        color: '#d9534f'
+                    },
+                    {
+                        from: 4,
+                        to: 6,
+                        name: 'Medio',
+                        color: '#f0ad4e'
+                    },
+                    {
+                        from: 7,
+                        to: 8,
+                        name: 'Óptimo',
+                        color: '#52b788'
+                    }
+                ]
+            }
+        }
+    },
+
+    stroke: {
+        width: 1,
+        colors: ['rgba(255,255,255,0.08)']
+    },
+
+    xaxis: {
+        type: 'category',
+        categories: [
+            'T01','T02','T03','T04','T05','T06','T07','T08','T09',
+            'T10','T11','T12','T13','T14','T15','T16','T17','T18'
+        ],
+        labels: {
+            style: {
+                fontSize: '12px'
+            }
+        }
+    },
+
+    legend: {
+        position: 'bottom'
+    },
+
+    grid: {
+        borderColor: 'rgba(255,255,255,0.08)'
+    },
+
+    tooltip: {
+        y: {
+            formatter: function (val) {
+                return val + ' sensores habilitados';
+            }
+        }
+    }
+};
+
+var chartSensoresTuneles = new ApexCharts(
+    document.querySelector("#chart-sensores-tuneles"),
+    optionsSensoresTuneles
+);
+chartSensoresTuneles.render();
+</script>
+  </body>
+</html>

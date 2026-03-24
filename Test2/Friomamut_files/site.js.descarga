@@ -1,0 +1,462 @@
+﻿$('.materialboxed').materialbox();
+$('select').formSelect();
+
+
+
+document.addEventListener('DOMContentLoaded', function () {
+    const pathname = window.location.pathname;
+
+    M.Sidenav.init(document.querySelectorAll('.sidenav'));
+    const elems = document.querySelectorAll('.collapsible');
+    const instances = M.Collapsible.init(elems, {
+        accordion: false
+    });
+
+    document.querySelectorAll('li > a').forEach(anchor => {
+        const href = anchor.getAttribute('href');
+
+        if (href === pathname) {
+            anchor.parentElement.classList.add('active');
+        }
+    });
+
+    document.querySelectorAll('.collapsible-body ul li a').forEach(anchor => {
+        const href = anchor.getAttribute('href');
+
+        if (href === pathname) {
+            anchor.parentElement.classList.add('active');
+
+            const collapsibleBody = anchor.closest('.collapsible-body');
+
+            if (collapsibleBody) {
+                collapsibleBody.style.display = 'block';
+                collapsibleBody.style.background = 'rgba(255, 255, 255, 0.03)';
+                collapsibleBody.previousElementSibling.classList.add('active');
+            }
+        }
+
+        anchor.addEventListener('click', function () {
+            document.querySelectorAll('.collapsible-body ul li').forEach(li => li.classList.remove('active'));
+            this.parentElement.classList.add('active');
+        });
+    });
+
+    let indexParams = $("ul li a[href='/Settings/Parameters']").parent().index();
+    document.querySelectorAll('.wrapper-screens .screens .element').forEach(link => {
+        link.classList.remove('active');
+
+        const href = link.getAttribute('href');
+
+        if (href && href === pathname) {
+            link.classList.add('active');
+        }
+        
+        $('.sidenav > li').eq(indexParams).addClass('active');
+
+        link.addEventListener('click', function (e) {
+            // e.preventDefault();
+
+            document.querySelectorAll('.wrapper-screens .screens .element')
+                .forEach(a => a.classList.remove('active'));
+
+            this.classList.add('active');
+        });
+    });
+});
+
+let task;
+let task_information;
+
+$.fn.Tabs = function (identifier, container, expand) {
+    var init = 0;
+    $('#' + identifier + ' .element').removeClass('active');
+    $('#' + identifier + ' .element').eq(init).addClass('active');
+
+    $('.' + container + ' .content > .layer').hide();
+    $('.' + container + ' .content > .layer').eq(init).show();
+
+    /* .wrapper-command .command */
+    $('#' + identifier + ' .wrapper-command').hide();
+
+    $(this).on('click', '.element', function () {
+        switch (container) {
+            case 'context':
+                var index = $(this).index();
+                $('#' + identifier + ' .element').removeClass('active');
+                $(this).addClass('active');
+
+                $('.' + container + ' .content > .layer').hide();
+                $('.' + container + ' .content > .layer').eq(index).show();
+
+                if (expand) {
+                    ((index === 1) ? $('.wrapper-context .context').addClass('expand') : $('.wrapper-context .context').removeClass('expand'));
+                }
+                
+                ((index === 1) ? $('#' + identifier + ' .wrapper-command').css({ 'display' : 'flex' }) : $('#' + identifier + ' .wrapper-command').hide());
+                break;
+            case 'menu':
+                var index = $(this).index();
+
+                $('#' + identifier + ' .element').removeClass('active');
+                $(this).addClass('active');
+
+                $('.' + container + ' .content > .layer').hide();
+                $('.' + container + ' .content > .layer').eq(index).show();
+
+                ((index === 1) ? $('#' + identifier + ' .wrapper-command').css({ 'display': 'flex' }) : $('#' + identifier + ' .wrapper-command').hide());
+                break;
+        }
+
+        
+    });
+}
+
+$.fn.Screens = function (identifier) {
+    var init = 0;
+    $('#' + identifier + ' .element').removeClass('active');
+    $('#' + identifier + ' .element').eq(init).addClass('active');
+
+    $(this).on('click', '.element', function () {
+        $('#' + identifier + ' .element').removeClass('active');
+        $(this).addClass('active');
+    });
+}
+
+$.fn.Context = function () {
+    $(this).click(function (e) {
+        /*e.stopPropagation();*/
+
+        $('.wrapper-context .context .wrapper-stack .list').fadeOut(100);
+        $('.wrapper-context .context .threads').fadeOut(100);
+        $('.wrapper-multiple .multiple .list').fadeOut(100);
+    });
+
+    $(this).on('click', '.header .button', function (e) {
+        e.stopPropagation();
+        $('.wrapper-context').fadeOut(100);
+        $('.wrapper-context .context').css({ 'transform': 'translateX(100%)' });
+        $('.wrapper-context .context').removeClass('complete');
+        history.back();
+    });
+
+    $(this).find('.more').click(function (e) {
+        e.stopPropagation();
+        $('.wrapper-context .context .threads').fadeIn(300);
+    });
+
+    $(this).find('.threads').on('click', '.element', function (e) {
+        e.stopPropagation();
+        $('.wrapper-context .context .threads').hide();
+        $('.wrapper-context .context .wrapper-button').hide();
+        $('.wrapper-context .context .wrapper-delete').css({ 'display': 'flex' });
+    });
+
+    $(this).find('.wrapper-delete ').on('click', '.cancel', function () {
+        $('.wrapper-context .context .wrapper-button').show();
+        $('.wrapper-context .context .wrapper-delete').hide();
+    });
+}
+
+$.fn.ActiveSelect = function (identifier) {
+    $('#' + identifier).on('change', function () {
+        var wrapper = $('#' + identifier).closest('.wrapper-select');
+        var select = wrapper.find('input.select-dropdown');
+        ($(this).val() !== "-1") ? select.addClass('active') : select.removeClass('active');
+    });
+}
+
+$.fn.Search = function (identifier) {
+    $(this).keyup(function () {
+        var input = $(this).val();
+        Search(input, identifier);
+    });
+}
+
+$.fn.Switch = function (identifier, enabled, disabled) {
+    $(this).change(function () {
+        var checked = $(this).prop('checked');
+        $('#' + identifier + ' strong').html(checked ? enabled : disabled);
+    });
+}
+
+$.fn.Finder = function (identifier, element) {
+    $(this).keyup(function () {
+        var input = $(this).val();
+        Finder(input, identifier, element);
+    });
+}
+
+$.fn.Multiple = function () {
+    return this.each(function () {
+        let $input = $(this);
+        let $picker = $(this).closest('.multiple');
+        let $select = $picker.find('.list');
+
+        $(this).on('click', function (e) {
+            e.stopPropagation();
+            $('.wrapper-multiple .multiple .list').hide();
+            $select.fadeIn(200);
+        });
+
+        $select.find('.element').on('click', function (e) {
+            e.stopPropagation();
+            $(this).toggleClass('active');
+
+            let multiple = [];
+            $select.find('.active').each(function (e) {
+                let value = $(this)[0].dataset.value;
+                let text = $(this)[0].dataset.text;
+                let content = { Value: value, Text: text };
+                multiple.push(content);
+            });
+
+            let text = multiple.map(item => item.Text).join(", ");
+            let empty = (text === '') ? 'Selecciona alguna de las sedes' : text;
+            $input.html(empty);
+            /*$select.fadeOut(100);*/
+
+
+        });
+    });
+};
+
+function Pluralize(palabra) {
+    const lower = palabra.toLowerCase();
+    const dias = ["lunes", "martes", "miércoles", "jueves", "viernes"];
+    if (dias.includes(lower)) return palabra;
+    if (/(is|sis)$/i.test(palabra)) return palabra;
+    if (/[íú]$/i.test(palabra)) { return [palabra + "es", palabra + "s"]; }
+    if (/[aeiouáéó]$/i.test(palabra)) {  return palabra + "s"; }
+    if (/[bcdfghjklmnñpqrstvwxy]$/i.test(palabra)) { return palabra + "es"; }
+    if (/z$/i.test(palabra)) { return palabra.replace(/z$/i, "ces"); }
+
+    return palabra + "s";
+}
+function parseNull(value) {
+    if (value === 'null') return null;
+    if (value === 'undefined') return undefined;
+    if (value === '') return null;
+    return value;
+}
+function Normalize(str) {
+    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+function Search(input, element) {
+    var filter = Normalize(input.toUpperCase());
+    var table = document.getElementById(element);
+    var tbody = table.getElementsByTagName("tbody");
+    var tr = tbody[0].getElementsByTagName("tr");
+
+    for (var i = 0; i < tr.length; i++) {
+        var datos = tr[i].dataset.search;
+
+        if (datos) {
+            var data = Normalize(datos.toUpperCase());
+
+            if (data.indexOf(filter) > -1) {
+                tr[i].style.display = "";
+            } else {
+                tr[i].style.display = "none";
+            }
+        }
+    }
+}
+function Finder(input, identifier, e) {
+    var filter = Normalize(input.toUpperCase());
+    var wrapper = document.getElementsByClassName(identifier)[0];
+    var element = wrapper.getElementsByClassName(e);
+
+    for (var i = 0; i < element.length; i++) {
+        var datos = element[i].dataset.search;
+
+        if (datos) {
+            var data = Normalize(datos.toUpperCase());
+
+            if (data.indexOf(filter) > -1) {
+                element[i].style.display = "";
+            } else {
+                element[i].style.display = "none";
+            }
+        }
+    }
+}
+function Validate(value, reference) {
+    if (value === '-1' || value === '' || value === undefined || value === null) { $('#validate-' + reference).show(); }
+    else { $('#validate-' + reference).hide(); }
+}
+function Verify(value, reference) {
+    var input = $('#' + reference).closest('.wrapper-input');
+    var select = $('#' + reference).closest('.wrapper-select');
+
+    if (value === '-1' || value === '' || value === undefined || value === null) {
+        input.addClass('wrapper-validate');
+        select.addClass('wrapper-validate');
+    }
+    else {
+        input.removeClass('wrapper-validate');
+        select.removeClass('wrapper-validate');
+    }
+}
+function VerifyNumber(value, reference) {
+    var input = $('#' + reference).closest('.wrapper-input');
+    var select = $('#' + reference).closest('.wrapper-select');
+
+    if (!$.isNumeric(value)) {
+        input.addClass('wrapper-validate');
+        select.addClass('wrapper-validate');
+    } else if (value === '' || value === '' || value === undefined) {
+        input.addClass('wrapper-validate');
+        select.addClass('wrapper-validate');
+    }
+    else {
+        input.removeClass('wrapper-validate');
+        select.removeClass('wrapper-validate');
+    }
+}
+function keepOnlyClass(element, classToKeep) {
+    element.className = classToKeep;
+}
+function Message(action, context) {
+    clearTimeout(task);
+
+    $('.wrapper-message .message').css({ transform: 'translateX(calc(100% + 15px))' });
+    setTimeout(function () {
+        $('.wrapper-message .message').css({ transform: 'translateX(0)' });
+    }, 300);
+
+    task = setTimeout(() => {
+        $('.wrapper-message .message').css({ transform: 'translateX(calc(100% + 15px))' });
+    }, 7000);
+
+    const message = document.getElementById("message");
+    keepOnlyClass(message, "wrapper-message");
+
+    switch (action) {
+        case 'success':
+            $('.wrapper-message').addClass('success');
+            $('.wrapper-message .message').css({ 'transform': 'translateX(0%)' });
+            $('.wrapper-message .message .icon i').html('done');
+            $('.wrapper-message .message .content .title').html('¡Enhorabuena!');
+            $('.wrapper-message .message .content .subtitle').html(context);
+            break;
+        case 'error':
+            $('.wrapper-message').addClass('error');
+            $('.wrapper-message .message').css({ 'transform': 'translateX(0%)' });
+            $('.wrapper-message .message .icon i').html('priority_high');
+            $('.wrapper-message .message .content .title').html('¡Ups! Error');
+            $('.wrapper-message .message .content .subtitle').html(context);
+            break;
+    }
+}
+
+function Notification(title, subtitle) {
+    clearTimeout(task_information);
+
+    $('.wrapper-notification .notification').css({ transform: 'translateX(0)' });
+
+    //$('.wrapper-notification .notification').css({ transform: 'translateX(calc(100% + 15px))' });
+    ////setTimeout(function () {
+    //    $('.wrapper-notification .notification').css({ transform: 'translateX(0)' });
+    //}, 300);
+     
+    //task_information = setTimeout(() => {
+    //    $('.wrapper-notification .notification').css({ transform: 'translateX(calc(100% + 15px))' });
+    //}, 7000);
+
+    $('.wrapper-notification').addClass('success');
+    $('.wrapper-notification .notification').css({ 'transform': 'translateX(0%)' });
+    $('.wrapper-notification .notification .icon i').html('priority_high');
+    $('.wrapper-notification .notification .content .title').html(title);
+    $('.wrapper-notification .notification .content .subtitle').html(subtitle);
+}
+
+$('.wrapper-message .message .button').click(function () {
+    $('.wrapper-message .message').css({ 'transform': 'translateX(calc(100% + 15px))' });
+});
+
+window.addEventListener('popstate', function (e) {
+    const state = e.state || {};
+    console.log(e);
+    console.log(state);
+
+    //if (e.state && e.state.layer) {
+    //    $('.wrapper-context').fadeOut(100);
+    //    $('.wrapper-context .context').css({ 'transform': 'translateX(100%)' });
+    //} else {
+    //    $('.wrapper-context').fadeOut(100);
+    //    $('.wrapper-context .context').css({ 'transform': 'translateX(100%)' });
+    //}
+
+    if (!state.sidebar) {
+        // Cerramos todo
+        $('.wrapper-context').fadeOut(100);
+        $('.wrapper-context .context').css({ 'transform': 'translateX(100%)' });
+    } else if (state.sidebar && !state.menu && !state.modal) {
+        // Sidebar abierto pero menú cerrado
+        $('.wrapper-menu').fadeOut(100);
+        $('.wrapper-menu .context').css({ 'transform': 'translateX(100%)' });
+    } else if (state.sidebar && state.menu && state.modal) {
+        // Sidebar y menú abiertos
+        //$('.sidebar').fadeIn(200);
+        //$('.menu').fadeIn(200);
+    }
+});
+
+$('.dropdown .button').click(function (e) {
+    e.stopPropagation();
+    $('.dropdown .threads').fadeOut(100);
+    $('.dropdown .threads').fadeIn(100);
+});
+
+$(document).on('click', function (e) {
+    $('.dropdown .threads').fadeOut(100);
+    $('.sidenav li .account .list').fadeOut(100);
+    $('.configuration .account .list').fadeOut(100);
+    
+});
+
+var mobile = window.matchMedia("(max-width: 600px)")
+function matches(x) {
+    if (x.matches) { $('select').addClass('browser-default') }
+    else { $('select').removeClass('browser-default') }
+    $('select').formSelect();
+}
+matches(mobile);
+
+$(window).resize(function () {
+    matches(mobile);
+});
+
+$("#screens").Screens('screens');
+
+$('.configuration .account .button').click(function (e) {
+    e.stopPropagation();
+    $('.configuration .account .list').fadeIn(300);
+})
+
+$('.sidenav li .account .circle').click(function (e) {
+    e.stopPropagation();
+    $('.sidenav li .account .list').fadeIn(300);
+});
+
+$('.sidenav li .account .list').on('click', '.element', function () {
+    var index = $(this).index();
+    if (index === 0)
+        $('.wrapper-coating').fadeIn(300);
+        $('.wrapper-coating .coating').css({ transform: 'translateY(0)' });
+});
+
+$('.wrapper-coating .coating .header .button').click(function () {
+    $('.wrapper-coating').fadeOut(300);
+    $('.wrapper-coating .coating').css({ transform: 'translateY(100%)' });
+});
+
+const language = {
+    cancel: 'Cancelar',
+    clear: 'Limpiar',
+    months: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
+    monthsShort: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+    weekdays: ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"],
+    weekdaysShort: ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"],
+    weekdaysAbbrev: ["D", "L", "M", "M", "J", "V", "S"]
+};

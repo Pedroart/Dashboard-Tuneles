@@ -1,0 +1,978 @@
+﻿let trends = null;
+var identifier = null;
+
+var inheritance = [];
+
+function isValidDate(f1, f2) {
+    return f1.getDate() === f2.getDate() &&
+        f1.getMonth() === f2.getMonth() &&
+        f1.getFullYear() === f2.getFullYear();
+}
+function isWeek(texto) {
+    if (!texto) return '';
+    return texto.charAt(0).toUpperCase() + texto.slice(1).toLowerCase();
+}
+function longDate(fechaISO) {
+    const [y, m, d] = fechaISO.split('T')[0].split('-');
+
+    return new Date(y, m - 1, d, 12).toLocaleDateString('es-PE', {
+        weekday: 'long',
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric'
+    });
+}
+function Process(process) {
+    var data = { Identifier: process };
+
+    $.ajax({
+        type: "POST",
+        contentType: "application/json",
+        url: '/Reports/Process',
+        data: JSON.stringify(data),
+        dataType: "json",
+        async: true,
+        beforeSend: function () {
+
+        },
+        success: function (data) {
+            var collection = JSON.parse(data);
+
+            inheritance = [];
+
+            if ($('span').hasClass('empty')) {
+                $('span').removeClass('empty');
+                $('span').removeClass('empty-top');
+                $('span').removeClass('empty-bottom');
+            }
+
+            $('.data-process .title span').empty();
+            $('.data-process .subtitle').empty();
+            $('.data-product .product span').empty();
+            $('.data-responsible .responsible .circle strong').empty();
+            $('.data-responsible .responsible span').empty();
+            $('.data-date .date').empty();
+            $('.hour span').empty();
+
+            if (collection.length > 0) {
+                for (i = 0; i < collection.length; i++) {
+                    var datos = collection[i];
+                    $('.data-process .title span').html(datos.Ambiente);
+                    $('.data-process .subtitle').html(datos.Descripcion);
+
+                    $('.data-product img').prop('src', '../products/' + datos.ImagenProducto);
+                    $('.data-product .product span').html(datos.Producto);
+
+                    $('.data-responsible .responsible .circle strong').html(datos.LetrasResponsable);
+                    $('.data-responsible .responsible span').html(datos.Responsable);
+
+                    (datos.Duracion !== 'Pendiente') ? $('.hour span').html(datos.Duracion) : $('.hour span').addClass('empty empty-top');
+
+                    var init = (datos.Inicio !== null) ? new Date(datos.Inicio) : null;
+                    var finish = (datos.Final !== null) ? new Date(datos.Final) : null;
+                    var options_time = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+
+                    const month = init.toLocaleDateString('es-ES', { month: 'long' });
+                    const year = init.toLocaleDateString('es-ES', { year: 'numeric' });
+
+                    $('.data-month span').html(isWeek(month));
+                    $('.data-month .year').html(year);
+                    $('.data-init .indicator span').html(init.toLocaleTimeString('es-PE', options_time));
+                    $('.data-finish .indicator span').html(((finish !== null) ? finish.toLocaleTimeString('es-PE', options_time) : $('.data-finish .indicator span').addClass('empty')));
+
+                    const weekday_init = init.toLocaleDateString('es-ES', { weekday: 'short' }).replace('.', '');
+                    const day_init = init.toLocaleDateString('es-ES', { day: '2-digit' });
+                    $('.data-date .date').append('<div class="day"><strong>' + isWeek(weekday_init) + '</strong><span>' + day_init + '</span></div>');
+
+                    if (finish !== null) {
+                        const weekday_finish = finish.toLocaleDateString('es-ES', { weekday: 'short' }).replace('.', '');
+                        const day_finish = finish.toLocaleDateString('es-ES', { day: '2-digit' });
+
+                        if (!isValidDate(init, finish)) {
+                            $('.data-date .date').append('<div class="day"><strong>' + isWeek(weekday_finish) + '</strong><span>' + day_finish + '</span></div>');
+                        }
+                    }
+
+                    inheritance.push({
+                        Ambiente: datos.Ambiente,
+                        Proceso: datos.Descripcion,
+                        Inicio: new Date(datos.Inicio).toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false}).replace(',', ''),
+                        Final: ((datos.Final === null || datos.Final === '') ? '' : new Date(datos.Final).toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(',', '')),
+                        Duracion: datos.Duracion,
+                        Producto: datos.Producto,
+                        Responsable: datos.Responsable
+                    });
+                }
+            } else {
+
+            }
+        },
+        complete: function () {
+            /*Translate('device', 'designer');*/
+        }, error: function (error) {
+
+        }
+    });
+}
+function Connectivity(process) {
+    var data = { Identifier: process };
+
+    $.ajax({
+        type: "POST",
+        contentType: "application/json",
+        url: '/Reports/Connectivity',
+        data: JSON.stringify(data),
+        dataType: "json",
+        async: true,
+        beforeSend: function () {
+
+        },
+        success: function (data) {
+            var collection = JSON.parse(data);
+            
+
+            $('.data-connectivity .wrapper-grid .grid').empty();
+
+            if (collection.length > 0) {
+                for (i = 0; i < collection.length; i++) {
+                    var datos = collection[i];
+
+                    if (datos.Instrumento === 1) {
+                        $('.data-connectivity .wrapper-grid .grid').eq(0).append(
+                            '<div class="element ' + ((datos.Visibilidad === true) ? 'green' : '') + '">' + datos.Sensor + '</div>'
+                        );
+                    } else {
+                        $('.data-connectivity .wrapper-grid .grid').eq(1).append(
+                            '<div class="element ' + ((datos.Visibilidad === true) ? 'green' : '') + '">' + datos.Sensor + '</div>'
+                        );
+                    }
+                }
+            } else {
+
+            }
+        },
+        complete: function () {
+            
+        }, error: function (error) {
+
+        }
+    });
+}
+function Trends(process) {
+    var data = { Identifier: process };
+
+    $.ajax({
+        type: "POST",
+        contentType: "application/json",
+        url: '/Reports/Trends',
+        data: JSON.stringify(data),
+        dataType: "json",
+        async: true,
+        beforeSend: function () {
+
+        },
+        success: function (data) {
+            var collection = JSON.parse(data);
+            var sensores = {};
+
+            
+            collection.forEach(item => {
+                var key = item.Sensor;
+
+                if (!sensores[key]) sensores[key] = [];
+
+                sensores[key].push({
+                    x: new Date(item.Fecha).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false }),
+                    y: parseFloat(item.Valor),
+                    unit: '°C',
+                    date: new Date(item.Fecha).toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit', hour12: false })
+                });
+            });
+
+            var colores = [
+                "#87cc2f", "#287bff", "#ff4f4f", "#ffa31a",
+                "#9b59b6", "#1abc9c", "#e67e22", "#f1c40f"
+            ];
+
+            var datasets = [];
+            var i = 0;
+
+            for (var sensor in sensores) {
+                const isAmbiente = sensor === "AMBIENTE";
+                const isRetorno = sensor === "RETORNO";
+
+                let color;
+
+                if (isAmbiente) { color = "#aaa"; }
+                else if (isRetorno) { color = "#ccc"; }
+                else { color = colores[i % colores.length]; }
+
+                datasets.push({
+                    label: sensor,
+                    data: sensores[sensor],
+                    borderWidth: 3,
+                    pointBorderWidth: 1,
+                    pointBackgroundColor: color,
+                    borderColor: color,
+                    backgroundColor: "transparent",
+                    fill: false,
+                    tension: 0.5,
+                    /*borderDash: (isAmbiente || isRetorno) ? [10, 5] : [] */
+                });
+
+                if (!isAmbiente && !isRetorno) i++;
+            }
+
+            //if (trends) {
+            //    trends.data.datasets = datasets;
+            //    trends.update();
+            //    return;
+            //}
+
+            if (trends) {
+                trends.destroy();
+            }
+
+            const ctx = document.getElementById('trends');
+            ctx.height = 400;
+
+            const verticalLine = {
+                id: 'verticalLine',
+                afterDatasetsDraw(chart, args, pluginOptions) {
+                    const { ctx, tooltip, chartArea: { top, bottom } } = chart;
+
+                    const active = tooltip?.getActiveElements?.();
+                    if (!active || active.length === 0) return;
+
+                    const [{ datasetIndex, index }] = active;
+                    const x = chart.getDatasetMeta(datasetIndex).data[index].x;
+
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.moveTo(x, top);
+                    ctx.lineTo(x, bottom);
+                    ctx.lineWidth = pluginOptions?.lineWidth ?? 3;
+                    ctx.strokeStyle = pluginOptions?.color ?? 'rgba(255, 255, 255, 0.15)';
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            };
+
+            var context = document.getElementById('trends').getContext('2d');;
+            var gradient = context.createLinearGradient(0, 0, 0, 350);
+            gradient.addColorStop(0, '#87cc2f');
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+            trends = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: datasets
+                },
+                options: {
+                    animation: false,
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: {
+                            top: 15,
+                            left: 15,
+                            right: 15,
+                            bottom: 15
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index',
+                    },
+                    scales: {
+                        y: {
+                            display: true,
+                            grid: {
+                                display: false
+                            },
+                            title: {
+                                display: false,
+                                text: 'Temperaturas',
+                                font: {
+                                    size: 12,
+                                    family: 'Arial',
+                                    weight: 'bold'
+                                },
+                            },
+                            ticks: {
+                                font: {
+                                    family: 'Arial',
+                                    weight: 'bold'
+                                },
+                                callback: function (value) {
+                                    return parseFloat(value).toFixed(1);
+                                }
+                            }
+                        },
+                        x: {
+                            display: true,
+                            offset: true,
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: {
+                                    family: 'Arial',
+                                    weight: 'bold'
+                                },
+                                maxRotation: 0,
+                                minRotation: 0,
+                                autoSkip: true,
+                                autoSkipPadding: 10
+                            }
+                        }
+                    },
+                    elements: {
+                        point: {
+                            radius: 0
+                        },
+                        line: {
+                            tension: 0.2
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: false,
+                            text: 'MEDICIONES',
+                            color: 'rgb(161, 161, 161)',
+                            padding: { bottom: 15 },
+                            font: {
+                                size: 13,
+                                weight: 'bold',
+                                family: 'Roboto'
+                            }
+                        },
+                        legend: {
+                            display: true,
+                            position: 'right',
+                            labels: {
+                                usePointStyle: true,
+                                pointStyle: 'rectRounded',
+                                boxWidth: 7,
+                                boxHeight: 7,
+                                color: 'white',
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        verticalLine: { color: 'rgba(255,255,255,0.15)', lineWidth: 3 },
+                        tooltip: {
+                            enabled: false,
+                            external: function (context) {
+                                const tooltipEl = document.getElementById('tooltip');
+                                const tooltip = context.tooltip;
+
+                                const legend = context.chart.legend.chart._metasets;
+                                const visibles = legend.filter(item => !item.hidden);
+
+                                if (!tooltip || tooltip.opacity === 0) {
+                                    tooltipEl.style.display = 'none';
+                                    return;
+                                }
+
+                                if (tooltip.body) {
+                                    const index = tooltip.dataPoints[0].dataIndex;
+                                    const titleLines = tooltip.title || [];
+
+                                    const point = tooltip.dataPoints[0];
+                                    const datasetRef = context.chart.data.datasets[point.datasetIndex];
+                                    const rawDate = datasetRef.data[point.dataIndex].date;
+
+                                    let innerHtml = '<div>';
+                                    innerHtml += '<div class="title">' + (rawDate + ' ' + (titleLines[0] ?? '')) + '</div>';
+
+                                    visibles.forEach((meta) => {
+                                        const dataset = context.chart.data.datasets[meta.index];
+
+                                        const datasetValue = dataset.data[index].y;
+                                        const datasetColor = dataset.borderColor;
+                                        const datasetUnit = dataset.data[index].unit;
+
+                                        innerHtml +=
+                                            '<div class="wrapper-data">' +
+                                            '<div class="data">' +
+                                            '<div class="circle" style="background:' + datasetColor + '"></div>' +
+                                            '<strong>' + dataset.label + '</strong>' +
+                                            '</div>' +
+                                            '<div class="value">' +
+                                            '<span>' + parseFloat(datasetValue).toFixed(1) + '</span>' +
+                                            '<strong>' + datasetUnit + '</strong>' +
+                                            '</div>' +
+                                            '</div>';
+                                    });
+
+                                    innerHtml += '</div>';
+
+                                    tooltipEl.innerHTML = innerHtml;
+                                    tooltipEl.style.display = 'block';
+                                    tooltipEl.style.opacity = 1;
+                                }
+
+                                const canvasPosition = context.chart.canvas.getBoundingClientRect();
+                                tooltipEl.style.left = canvasPosition.left + window.scrollX + tooltip.caretX - (tooltip.width / 2) + 'px';
+                                tooltipEl.style.top = canvasPosition.top + window.scrollY + tooltip.caretY + 5 + 'px';
+                            },
+                            displayColors: false,
+                            callbacks: {
+                                label: function (value) {
+                                    return value.dataset.label + ' ' + parseFloat(value.raw).toFixed(1);
+                                }
+                            }
+                        }
+
+                    },
+                    tooltips: {
+                        enabled: true,
+                        intersect: false,
+                        mode: "index"
+                    },
+                    hover: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                },
+                plugins: [verticalLine]
+            });
+        },
+        complete: function () {
+            /*Translate('device', 'designer');*/
+        }, error: function (error) {
+
+        }
+    });
+}
+function Workflow(process) {
+    var data = { Identifier: process };
+
+    $.ajax({
+        type: "POST",
+        contentType: "application/json",
+        url: '/Reports/Workflow',
+        data: JSON.stringify(data),
+        dataType: "json",
+        async: true,
+        beforeSend: function () {
+
+        },
+        success: function (data) {
+            var data = JSON.parse(data);
+            
+
+            $('.workflow').empty();
+            const workflow = document.getElementById('workflow');
+
+            const formatFechaLarga = fecha => new Date(fecha).toLocaleDateString('es-PE', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+            const formatHora = fecha => new Date(fecha).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+            const agrupado = data.reduce((acc, item) => {
+                const dia = item.Fecha.split('T')[0];
+                acc[dia] ??= [];
+                acc[dia].push(item);
+                return acc;
+            }, {});
+
+            
+
+            Object.entries(agrupado).forEach(([dia, eventos]) => {
+
+                const element = document.createElement('div');
+                element.className = 'element';
+
+                element.innerHTML = '<div class="date">' + longDate(dia) + '</div>';
+
+                eventos.forEach(e => {
+
+                    const context = document.createElement('div');
+                    context.className = 'context';
+
+                    context.innerHTML = 
+                    '<div class="time">' + formatHora(e.Fecha) + '</div>' +
+                    '<div class="list">' +
+                    '<div class="operator">' +
+                    '<div class="circle">' + e.Letras + '</div>' +
+                    '<div class="content">' +
+                    '<span class="title">' + e.Responsable + '</span>' +
+                    '<b class="subtitle">' + ' ha <strong>' + e.Estado + '</strong> el proceso.' + '</b>' +
+                    '</div>' +
+                    (e.Comentarios ? '<div class="comments">' + '<div class="title">Comentarios</div>' + '<div class="content">' + '<span>' + e.Comentarios + '</span>' + '</div>' + '</div>' : '') +
+                    '</div>' +
+                    '</div>'
+                    ;
+
+                    element.appendChild(context);
+                });
+
+                workflow.appendChild(element);
+            });
+        },
+        complete: function () {
+
+        }, error: function (error) {
+
+        }
+    });
+}
+function Pallets(process) {
+    var data = { Identifier: process };
+
+    $.ajax({
+        type: "POST",
+        contentType: "application/json",
+        url: '/Reports/Pallets',
+        data: JSON.stringify(data),
+        dataType: "json",
+        async: true,
+        beforeSend: function () {
+            $('#paletas thead').empty();
+            $('#paletas tbody').empty();
+        },
+        success: function (data) {
+            var collection = JSON.parse(data);
+            
+
+            counter_pallets = collection.length;
+
+            if (collection.length > 0) {
+                var encabezados = [];
+                for (var i = 0; i < 1; i++) {
+                    var counter = collection[i];
+                    $('#paletas thead').html('<tr></tr>');
+
+                    for (key in counter) {
+                        if (key.toLowerCase() === 'identificador') continue;
+                        $('#paletas thead tr:last').append('<th><div class="flex">' + key.replace(/_/g, ' ') + '</div></th>');
+                        var headers = 'counter.' + key;
+                        encabezados.push(headers);
+                    }
+                }
+
+                for (var i = 0; i < collection.length; i++) {
+                    var counter = collection[i];
+                    $('#paletas tbody').append('<tr class="active" data-identifier="' + counter.Identificador + '" data-code="' + counter.Codigo + '"></tr>');
+                    for (var x = 0; x < encabezados.length; x++) {
+                        $('#paletas tbody tr:last').append('<td><div class="flex">' + eval(encabezados[x]) + '</div></td>');
+                    }
+                }
+            } else {
+                $('#paletas thead').html('<tr><th><div class="flex">Codigo</div></th><th><div class="flex">Sensor</div></th><th><div class="flex">Variedades</div></th><th><div class="flex">Envases</div></th><th><div class="flex">Calibre</div></th></tr>');
+                $('#paletas tbody').append('<tr class="no-hover"></tr>');
+                $('#paletas tbody tr').append('<td colspan="5"><div class="flex center">' + 'No se encontraron paletas' + '</div></td>');
+            }
+
+        }, complete: function (respuesta) {
+           
+        }, error: function (result) {
+
+        }
+    });
+}
+function Usability(process) {
+    var data = { Identifier: process };
+
+    $.ajax({
+        type: "POST",
+        contentType: "application/json",
+        url: '/Reports/Usability',
+        data: JSON.stringify(data),
+        dataType: "json",
+        async: true,
+        beforeSend: function () {
+
+        },
+        success: function (data) {
+            var collection = JSON.parse(data);
+            
+
+            $('.data-usability .wrapper-grid .grid').empty();
+
+            if (collection.length > 0) {
+                for (i = 0; i < collection.length; i++) {
+                    var datos = collection[i];
+                    $('.data-usability .wrapper-grid .grid').append(
+                        '<div class="element ' + ((datos.Visibilidad === true) ? 'indigo' : '') + '">' + datos.Sensor + '</div>'
+                    );
+                }
+            } else {
+
+            }
+        },
+        complete: function () {
+
+        }, error: function (error) {
+
+        }
+    });
+}
+function Measurements(environments) {
+    var data = { Identifier: environments };
+
+    $.ajax({
+        type: "POST",
+        contentType: "application/json",
+        url: '/Reports/Measurements',
+        data: JSON.stringify(data),
+        dataType: "json",
+        async: true,
+        processData: false,
+        timeout: 60000,
+        beforeSend: function () {
+            $('nav .wrapper-download').hide();
+        },
+        success: function (data) {
+            $('nav .wrapper-download').show();
+            var collection = JSON.parse(data);
+
+            $('#measurements thead').empty();
+            $('#measurements tbody').empty();
+
+            var encabezados = [];
+            for (var i = 0; i < 1; i++) {
+                var counter = collection[i];
+                $('#measurements thead').html('<tr></tr>');
+
+                for (key in counter) {
+                    var center = (key === 'LECTURA') ? '' : 'center';
+                    $('#measurements thead tr:last').append('<th><div class="flex ' + center + '">' + key.replace(/_/g, ' ') + '</div></th>');
+                    var headers = 'counter.' + key;
+                    encabezados.push(headers);
+                }
+            }
+
+            for (var i = 0; i < collection.length; i++) {
+                var counter = collection[i];
+                $('#measurements tbody').append('<tr>');
+                for (var j = 0; j < encabezados.length; j++) {
+                    if (encabezados[j] == 'counter.LECTURA') {
+                        var date = 'new Date(' + encabezados[j] + ').toLocaleString("es-PE", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false}).replace(",", "")';
+                        $('#measurements tbody tr:last').append('<td><div class="flex color-date">' + eval(date) + '</div></td>');
+                    } else {
+                        var value = eval(encabezados[j]);
+                        
+                        $('#measurements tbody tr:last').append('<td><div class="flex center ' + ((value === null) ? 'attenuate' : '') + '">' + ((value !== null) ? parseFloat(value).toFixed(1) : '<div class="empty empty-small"></div>') + '</div></td>');
+                    }
+                }
+            }
+
+        }, complete: function () {
+
+
+        }, error: function (error) {
+            $('nav .wrapper-download').hide();
+            console.log(error);
+        }
+    });
+}
+
+function Available() {
+    $.ajax({
+        type: "GET",
+        contentType: "application/json",
+        url: '/Reports/Available.json',
+        dataType: "json",
+        async: true,
+        beforeSend: function () {
+
+        },
+        success: function (data) {
+            var collection = JSON.parse(data);
+
+            $('#environments').empty();
+            $('#environments').append('<option value="-1" disabled selected>Selecciona alguno de los ambientes</option>');
+            if (collection.length > 0) {
+                for (i = 0; i < collection.length; i++) {
+                    var datos = collection[i];
+
+                    if (datos.Visibilidad) {
+                        $('#environments').append('<option value="' + datos.Identificador + '">' + datos.Descripcion + '</option>');
+                    }
+                }
+            }
+        },
+        complete: function () {
+            $('#environments').formSelect();
+        }, error: function (error) {
+
+        }
+    });
+}
+function Status() {
+    $.ajax({
+        type: "GET",
+        contentType: "application/json",
+        url: '/Reports/Status.json',
+        dataType: "json",
+        async: true,
+        beforeSend: function () {
+
+        },
+        success: function (data) {
+            var collection = JSON.parse(data);
+
+            $('#status').empty();
+            $('#status').append('<option value="-1" disabled selected>Selecciona alguno de los estados</option>');
+            if (collection.length > 0) {
+                for (i = 0; i < collection.length; i++) {
+                    var datos = collection[i];
+                    $('#status').append('<option value="' + datos.Identificador + '">' + datos.Descripcion + '</option>');
+                }
+            }
+        },
+        complete: function () {
+            $('#status').formSelect();
+        }, error: function (error) {
+
+        }
+    });
+}
+function Filter(parameters) {
+    fetch('/Reports/Filter', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            Parameters: parameters
+        })
+    })
+        .then(response => response.json())
+        .then(response => {
+            var data = JSON.parse(response);
+
+            
+
+            $('.handpick').empty();
+            const handpick = document.getElementById('handpick');
+
+            const format = fecha => new Date(fecha).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false });
+            const agrupado = data.reduce((acc, item) => {
+                const dia = item.Fecha.split('T')[0];
+                acc[dia] ??= [];
+                acc[dia].push(item);
+                return acc;
+            }, {});
+
+            Object.entries(agrupado).forEach(([dia, eventos]) => {
+
+                const element = document.createElement('div');
+                element.className = 'group';
+
+                element.innerHTML = '<div class="header">' + longDate(dia) + '</div>';
+
+                eventos.forEach(e => {
+
+                    const context = document.createElement('div');
+                    context.className = 'content';
+
+                    context.innerHTML =
+                        '<div class="element" data-identifier="' + e.Identificador + '">' +
+                        '<div class="circle">' + '</div>' +
+                        '<div class="hour">' + format(e.Fecha) + '</div>' +
+                        '<span>' + e.Descripcion + '</span>' +
+                        '</div>';
+
+                    element.appendChild(context);
+                });
+
+                handpick.appendChild(element);
+            });
+
+            if (data.length < 1) {
+                $('.handpick').append(
+                    '<div class="group">' +
+                        '<div class="content">' +
+                            '<div class="blank">' +
+                                '<span>No se encontraron datos</span>' +
+                           '</div>' +
+                        '</div>' +
+                    '</div>'
+                );
+            }
+        })
+        .catch(error => {
+            console.log(error);
+        })
+        .finally(() => {
+
+        });
+}
+
+Available();
+Status();
+
+/* layout:context */
+$('.wrapper-context .context').Context();
+
+$('nav .wrapper-button .button').click(function () {
+    $('.wrapper-context').fadeIn(300);
+    $('.wrapper-context .context').css({ 'transform': 'translateX(0)' });
+
+    history.pushState({ layer: true }, "");
+});
+
+$('.wrapper-handpick .handpick').on('click', '.element', function () {
+    const element = $(this);
+
+    if (element.hasClass('active')) {
+        element.removeClass('active');
+    } else {
+        $('.wrapper-handpick .handpick .element').removeClass('active');
+        element.addClass('active');
+    }
+});
+
+const now = new Date();
+const init = { container: 'body', i18n: language, format: 'dd/mm/yyyy', setDefaultDate: true, defaultDate: new Date(), autoClose: true, onClose: function () { } };
+const finish = { container: 'body', i18n: language, format: 'dd/mm/yyyy', setDefaultDate: true, defaultDate: new Date(), autoClose: true, onClose: function () { } };
+
+init.defaultDate = new Date(now.getFullYear(), now.getMonth(), 1);
+finish.defaultDate = new Date();
+
+$('#init').datepicker(init);
+$('#finish').datepicker(finish);
+
+$('#periods').change(function () {
+    var datos = $('#periods option:selected').val();
+
+    switch (parseInt(datos)) {
+        case 0:
+            $('.customizable').show();
+            init.defaultDate = new Date();
+            finish.defaultDate = new Date();
+
+            $('#init').datepicker(init);
+            $('#finish').datepicker(finish);
+            break;
+        case 1:
+            $('.customizable').hide();
+            init.defaultDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            finish.defaultDate = new Date();
+
+            $('#init').datepicker(init);
+            $('#finish').datepicker(finish);
+            break;
+        case 2:
+            $('.customizable').hide();
+            init.defaultDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            finish.defaultDate = new Date();
+
+            $('#init').datepicker(init);
+            $('#finish').datepicker(finish);
+            break;
+        case 6:
+            $('.customizable').hide();
+            init.defaultDate = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+            finish.defaultDate = new Date();
+
+            $('#init').datepicker(init);
+            $('#finish').datepicker(finish);
+            break;
+        default:
+            $('.customizable').hide();
+            break;
+    }
+
+    var _init = $('#init').val();
+    var _finish = $('#finish').val();
+
+    var environments = $('#environments option:selected').val();
+    var status = $('#status option:selected').val();
+
+    var parameters = [];
+    var content = { Init: _init, Finish: _finish, Environment: parseInt(environments), Status: parseInt(status) };
+    parameters.push(content);
+
+    Filter(JSON.stringify(parameters));
+});
+
+$('#environments').change(function () {
+    var _init = $('#init').val();
+    var _finish = $('#finish').val();
+
+    var environments = $('#environments option:selected').val();
+    var status = $('#status option:selected').val();
+
+    var parameters = [];
+    var content = { Init: _init, Finish: _finish, Environment: parseInt(environments), Status: parseInt(status) };
+    parameters.push(content);
+
+    Filter(JSON.stringify(parameters));
+});
+$('#status').change(function () {
+    var _init = $('#init').val();
+    var _finish = $('#finish').val();
+
+    var environments = $('#environments option:selected').val();
+    var status = $('#status option:selected').val();
+
+    var parameters = [];
+    var content = { Init: _init, Finish: _finish, Environment: parseInt(environments), Status: parseInt(status) };
+    parameters.push(content);
+
+    Filter(JSON.stringify(parameters));
+});
+
+$('.wrapper-filter .filter').click(function () {
+    var validate = $('.wrapper-handpick .handpick .group .content .element').is('.active');
+    
+    if (validate) {
+        identifier = $('.wrapper-handpick .handpick .group .content .element.active')[0].dataset.identifier;
+
+        if (trends) {
+            trends.destroy();
+        }
+
+        Process(identifier);
+        Connectivity(identifier);
+        Trends(identifier);
+        Workflow(identifier);
+        Pallets(identifier);
+        Usability(identifier);
+        Measurements(identifier);
+
+        $('.wrapper-context').fadeOut(100);
+        $('.wrapper-context .context').css({ 'transform': 'translateX(100%)' });
+    }
+})
+$('.wrapper-download .download').off().on('click', function () {
+    Export();
+})
+function Export() {
+    let tabla = document.getElementById("measurements");
+
+    let wb = XLSX.utils.table_to_book(tabla, { sheet: "Mediciones" });
+    let ws = wb.Sheets["Mediciones"];
+
+    let rango = XLSX.utils.decode_range(ws['!ref']);
+
+    for (let i = rango.s.r + 1; i <= rango.e.r; i++) {
+        let celda = ws['A' + (i + 1)];
+        if (celda) {
+            celda.z = "dd/mm/yyyy HH:mm:ss";
+        }
+    }
+
+    ws['!cols'] = [];
+    ws['!cols'][0] = { wch: 22 };
+
+    let resumen = XLSX.utils.json_to_sheet(inheritance, {
+        header: ["Ambiente", "Proceso", "Inicio", "Final", "Duracion", "Producto", "Responsable"]
+    });
+    resumen['!cols'] = [
+        { wch: 10 },
+        { wch: 20 },
+        { wch: 20 },
+        { wch: 20 },
+        { wch: 15 },
+        { wch: 15 },
+        { wch: 20 }
+    ];
+    XLSX.utils.book_append_sheet(wb, resumen, "Datos");
+
+    XLSX.writeFile(wb, inheritance[0].Ambiente + ' ' + inheritance[0].Proceso + ".xlsx");
+}

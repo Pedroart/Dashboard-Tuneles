@@ -1,0 +1,72 @@
+﻿$('#avatar').change(function (event) {
+    var path = URL.createObjectURL(event.target.files[0]);
+    console.log(path);
+    $('.wrapper-coating .coating .configuration .account .circle').html('<img src="' + path + '">');
+
+    $('.wrapper-coating .coating .configuration .account .button').hide();
+    $('.wrapper-coating .coating .configuration .account .publish').show();
+});
+
+$('.wrapper-coating .coating .manage').on('click', '.element', function () {
+    var action = $(this)[0].dataset.action;
+    var context = $(this)[0].dataset.context;
+
+    switch (action) {
+        case 'update':
+            Handle('update');
+            context = JSON.parse(context);
+            console.log(context);
+
+            var name = decodeURIComponent(escape(window.atob(context[0].Name)));
+            var lastname = decodeURIComponent(escape(window.atob(context[0].LastName)));
+            var email = context[0].Email;
+
+            $('.wrapper-coating .coating .manage').hide();
+            $('.wrapper-coating .coating .handle').show();
+
+            $('#name').val(name);
+            $('#lastname').val(lastname);
+            $('#email').val(email);
+            break;
+        case 'security':
+            Handle('security');
+            $('.wrapper-coating .coating .manage').hide();
+            $('.wrapper-coating .coating .handle').show();
+            break;
+    }
+});
+
+function Handle(type) {
+    var input = '';
+
+    switch (type) {
+        case 'update':
+            input = '<div class="wrapper-input"><label for="name">Nombres</label><input type="text" placeholder="John" id="name" autocomplete="off" /><div class="verify"></div></div>';
+            input += '<div class="wrapper-input"><label for="lastname">Apellidos</label><input type="text" placeholder="Doe" id="lastname" autocomplete="off" /><div class="verify"></div></div>';
+            input += '<div class="wrapper-input lasted"><label for="email">Correo electrónico</label><input type="text" placeholder="example@example.com" id="email" autocomplete="off" /><div class="verify"></div></div>';
+            input += '<div class="wrapper-button">';
+            input += '<div class="button flat waves-effect waves-blue" data-context="" data-action="update"><i class="material-icons-outlined">auto_fix_normal</i> <div class="title">Modificar</div></div>';
+            input += '<div class="cancel waves-effect waves-light"><div class="title">Cancelar</div></div>';
+            input += '</div>';
+
+            $('.wrapper-coating .coating .handle').html(input);
+            break;
+        case 'security':
+            input = '<div class="wrapper-input"><label for="current-password">Contraseña actual</label><input type="password" placeholder="●●●●●●●●" id="current-password" autocomplete="off" /><div class="verify"></div></div>';
+            input += '<div class="wrapper-input lasted"><label for="renew-password">Contraseña nueva</label><input type="password" placeholder="●●●●●●●●" id="renew-password" autocomplete="off" /><div class="verify"></div></div>';
+            input += '<div class="wrapper-button">';
+            input += '<div class="button flat waves-effect waves-blue" data-context="" data-action="update"><i class="material-icons-outlined">shield</i> <div class="title">Modificar</div></div>';
+            input += '<div class="cancel waves-effect waves-light"><div class="title">Cancelar</div></div>';
+            input += '</div>';
+
+            $('.wrapper-coating .coating .handle').html(input);
+            break;
+
+    }
+}
+
+$(document).on('click', '.wrapper-coating .coating .wrapper-button .cancel', function () {
+    $('.wrapper-coating .coating .manage').show();
+    $('.wrapper-coating .coating .handle').hide();
+    $('.wrapper-coating .coating .handle').empty();
+});
