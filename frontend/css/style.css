@@ -83,7 +83,7 @@ nav .brand-logo{
   display: grid;
   grid-template-columns: repeat(12, 1fr);
   grid-auto-rows: auto;
-  gap: var(--gap);
+  gap: 14px;
   padding: 14px;
   background: transparent;
 }
@@ -161,26 +161,28 @@ nav .brand-logo{
   background: transparent;
 }
 
-/* Posicionamiento en grid de widgets */
-/* Fila 1: 4 KPIs (3 columnas cada uno) */
-.widget:nth-child(1){ grid-column: span 4; height: 100%; }
-.widget:nth-child(2){ grid-column: span 4; height: 100%; }
-.widget:nth-child(3){ grid-column: span 4; height: 100%; }
-.widget:nth-child(4){ grid-column: span 6; min-height: 380px; }
+/* Posicionamiento en grid de widgets — clases semánticas */
+.widget.w-half  { grid-column: span 6;  }
+.widget.w-full  { grid-column: span 12; }
 
-/* Filas 2-4: 6 gráficas (6 columnas cada una, 2 por fila) */
-.widget:nth-child(5){ grid-column: span 6; min-height: 380px; }
-.widget:nth-child(6){ grid-column: span 6; min-height: 380px; }
-.widget:nth-child(7){ grid-column: span 6; min-height: 380px; }
-.widget:nth-child(8){ grid-column: span 6; min-height: 380px; }
-.widget:nth-child(9){ grid-column: span 6; min-height: 380px; }
-.widget:nth-child(10){ grid-column: span 12; height: 100%; }
+/* Alturas mínimas por tipo */
+.widget.w-half.chart-card { min-height: 380px; }
+.widget.w-full.chart-card { min-height: 340px; }
 
-/* Fila 5: Resumen Ejecutivo (ancho completo) */
-.widget:nth-child(11){ grid-column: span 12; }
+/* Header de chart card */
+.chart-card-header {
+  padding-bottom: 8px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
 
-/* Fila 6: Tabla de datos operativos (ancho completo) */
-.widget:nth-child(12){ grid-column: span 12; }
+.chart-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  color: rgba(255,255,255,0.88);
+  margin: 0;
+}
 
 
 /* ===== Tarjetas KPI ===== */
@@ -559,8 +561,8 @@ nav .brand-logo{
 .executive-summary {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 20px !important;
+  gap: 14px;
+  padding: 14px !important;
   background: linear-gradient(135deg, rgba(30, 41, 59, 0.4), rgba(15, 23, 42, 0.6)) !important;
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255,255,255,0.12) !important;
@@ -593,8 +595,8 @@ nav .brand-logo{
 
 .exec-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
 }
 
 .exec-metric {

@@ -28,35 +28,79 @@
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 
     <style>
+      /* PREMIUM VIBRANT UI OVERRIDES */
+      body, html {
+        background-color: #0b0f19 !important; /* Deeper background for the layout */
+      }
+
+      .layout-container {
+        background-color: transparent !important;
+      }
+
+      .reports .padding {
+         padding-top: 24px;
+      }
+
+      .component, .card-kpi {
+        background: rgba(22, 27, 34, 0.6) !important;
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-radius: 16px !important;
+        border: none;
+        box-shadow: none !important;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+      }
+      
+      .component:hover, .card-kpi:hover {
+        transform: translateY(-4px);
+        box-shadow: none !important;
+        border: none;
+      }
+
       .card-kpi {
         min-height: 280px;
         display: flex;
         flex-direction: column;
+        padding: 24px !important;
       }
 
-      .card-kpi .title {
-        margin-bottom: 12px;
+      .component {
+        padding: 24px !important;
+      }
+
+      .component .title span, .card-kpi .title span {
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: #94a3b8;
       }
 
       .kpi-main {
         display: flex;
         justify-content: center;
         align-items: center;
-        min-height: 90px;
+        min-height: 70px;
         margin-bottom: 16px;
+        margin-top: 16px;
       }
 
       .kpi-value {
-        font-size: 56px;
-        font-weight: 700;
+        font-size: 50px;
+        font-weight: 800;
         line-height: 1;
         text-align: center;
+        /* Vibrant Gradient Text */
+        background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 4px 20px rgba(79, 172, 254, 0.2);
       }
 
       .kpi-list {
         display: flex;
         flex-direction: column;
-        gap: 18px;
+        gap: 16px;
         margin-top: 14px;
       }
 
@@ -64,43 +108,124 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 12px;
+        padding: 10px 16px;
+        background: rgba(255,255,255,0.03);
+        border-radius: 12px;
+        transition: background 0.2s;
+        border: none;
+      }
+      .kpi-row:hover {
+        background: rgba(255,255,255,0.08);
       }
 
       .kpi-label {
-        font-weight: 700;
+        font-weight: 600;
+        color: #cbd5e1;
+        font-size: 14px;
       }
 
       .kpi-detail {
         font-weight: 700;
-        text-align: right;
-        white-space: nowrap;
+        color: #f8fafc;
+        font-size: 14px;
       }
 
       .kpi-split {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
         margin-top: 14px;
       }
 
+      .kpi-box {
+        background: rgba(255,255,255,0.03);
+        padding: 12px 16px;
+        border-radius: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border: none;
+      }
+      .kpi-box .subtext {
+        font-size: 12px;
+        color: #94a3b8;
+        text-transform: uppercase;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+      }
+
       .kpi-box .indicator {
-        margin-top: 8px;
-      }
-
-      .kpi-footer {
-        margin-top: 18px;
-      }
-
-      .kpi-note {
-        margin-top: 6px;
-        font-size: 16px;
+        margin-top: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        font-size: 18px;
         font-weight: 700;
-        line-height: 1.2;
+        color: #f8fafc;
       }
 
-      .data-connectivity .legend {
-        margin-top: 18px;
+      .circle { width: 12px; height: 12px; border-radius: 50%; box-shadow: 0 0 12px currentColor; }
+      .green { background-color: #10b981; color: #10b981; }
+      .blue { background-color: #3b82f6; color: #3b82f6; }
+      .yellow { background-color: #f59e0b; color: #f59e0b; }
+      .grey { background-color: #64748b; color: #64748b; }
+
+      .data-connectivity .kpi-row { background: transparent; padding: 0; border: none; }
+      .data-connectivity .kpi-row:hover { background: transparent; }
+      .data-connectivity .indicator { display: flex; align-items: center; gap: 12px; font-weight: 600; color: #cbd5e1; }
+      
+      /* ApexCharts Text Color Override */
+      .apexcharts-text {
+        fill: #94a3b8 !important;
+      }
+      .apexcharts-tooltip {
+        background: rgba(15, 23, 42, 0.9) !important;
+        border: none;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.5) !important;
+        backdrop-filter: blur(10px);
+        border-radius: 8px !important;
+        color: #f8fafc !important;
+      }
+      .apexcharts-tooltip-title {
+        background: rgba(255,255,255,0.05) !important;
+        border-bottom: 1px solid rgba(255,255,255,0.1) !important;
+        font-family: inherit !important;
+        font-weight: 600 !important;
+      }
+      
+      .apexcharts-area-series .apexcharts-area {
+        pointer-events: none !important;
+      }
+
+      .component > div[id^="chart"] {
+        margin-top: 20px;
+      }
+
+      .custom-dashboard-grid {
+        display: flex;
+        gap: 24px;
+        width: 100%;
+        flex-wrap: wrap;
+        align-items: stretch !important;
+      }
+      .custom-dashboard-grid > .component {
+        box-sizing: border-box !important;
+        margin: 0 !important;
+      }
+      .card-third {
+        flex: 1 1 calc(33.333% - 16px);
+        min-width: 300px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+      .card-half {
+        flex: 1 1 calc(50% - 12px);
+        min-width: 400px;
+      }
+      .card-full {
+        flex: 1 1 100%;
       }
     </style>
   </head>
@@ -261,10 +386,10 @@
 
       <div class="reports">
         <div class="padding">
-          <div class="row">
+          <!-- UNIFIED MASTER GRID -->
+          <div class="custom-dashboard-grid">
             <!-- CARD 1 -->
-            <div class="col l4 m4 s12">
-              <div class="component data-process card-kpi">
+            <div class="component data-process card-kpi card-third">
                 <div class="title">
                   <span>Batch realizados</span>
                 </div>
@@ -277,24 +402,22 @@
                   <div class="kpi-list">
                     <div class="kpi-row">
                       <span class="kpi-label">PK01</span>
-                      <span class="kpi-detail">52 · 41.6%</span>
+                      <span class="kpi-detail">52 &middot; 41.6%</span>
                     </div>
                     <div class="kpi-row">
                       <span class="kpi-label">PK02</span>
-                      <span class="kpi-detail">38 · 30.4%</span>
+                      <span class="kpi-detail">38 &middot; 30.4%</span>
                     </div>
                     <div class="kpi-row">
                       <span class="kpi-label">PK03</span>
-                      <span class="kpi-detail">35 · 28.0%</span>
+                      <span class="kpi-detail">35 &middot; 28.0%</span>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
 
             <!-- CARD 2 -->
-            <div class="col l4 m4 s12">
-              <div class="component card-kpi">
+            <div class="component card-kpi card-third">
                 <div class="title">
                   <span>Tiempo de enfriamiento promedio</span>
                 </div>
@@ -306,7 +429,7 @@
                 <div class="content">
                   <div class="kpi-split">
                     <div class="kpi-box">
-                      <div class="subtext">Mínimo</div>
+                      <div class="subtext">M&iacute;nimo</div>
                       <div class="indicator">
                         <div class="circle green"></div>
                         <span>15.2 h</span>
@@ -314,7 +437,7 @@
                     </div>
 
                     <div class="kpi-box">
-                      <div class="subtext">Máximo</div>
+                      <div class="subtext">M&aacute;ximo</div>
                       <div class="indicator">
                         <div class="circle blue"></div>
                         <span>21.7 h</span>
@@ -323,11 +446,9 @@
                   </div>
                 </div>
               </div>
-            </div>
 
             <!-- CARD 3 -->
-            <div class="col l4 m4 s12">
-              <div class="component data-connectivity card-kpi">
+            <div class="component data-connectivity card-kpi card-third">
                 <div class="title">
                   <span>Estado de sensores</span>
                 </div>
@@ -343,7 +464,15 @@
                         <div class="circle green"></div>
                         <span>Operativos</span>
                       </div>
-                      <span class="kpi-detail">84%</span>
+                      <span class="kpi-detail">80%</span>
+                    </div>
+
+                    <div class="kpi-row">
+                      <div class="indicator">
+                        <div class="circle yellow"></div>
+                        <span>Fuera de rango</span>
+                      </div>
+                      <span class="kpi-detail">4%</span>
                     </div>
 
                     <div class="kpi-row">
@@ -356,36 +485,28 @@
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-          <div class="row">
-            <div class="col l6 m6 s12">
-              <div class="component">
-                <div class="title">
-                  <span>PROMEDIO DE HORAS DE ENFRIAMIENTO POR TÚNELES</span>
-                </div>
 
+            <!-- CHARTS -->
+            <div class="component card-full">
+                <div class="title">
+                  <span>PROMEDIO DE HORAS DE ENFRIAMIENTO POR T&Uacute;NELES</span>
+                </div>
                 <div id="chart-enfriamiento"></div>
               </div>
-            </div>
-            <div class="col l6 m6 s12">
-              <div class="component">
-                <div class="title">
-                  <span>Actividad de túneles (batch/día)</span>
-                </div>
 
+            <div class="component card-half">
+                <div class="title">
+                  <span>Actividad de t&uacute;neles (batch/d&iacute;a)</span>
+                </div>
                 <div id="chart-batch-tuneles"></div>
               </div>
-            </div>
-            <div class="col l6 m6 s12">
-  <div class="component">
-    <div class="title">
-      <span>Sensores habilitados por túnel y packing</span>
-    </div>
 
-    <div id="chart-sensores-tuneles"></div>
-  </div>
-</div>
+            <div class="component card-half">
+                <div class="title">
+                  <span>Sensores habilitados por t&uacute;nel y packing</span>
+                </div>
+                <div id="chart-sensores-tuneles"></div>
+              </div>
           </div>
         </div>
       </div>
@@ -683,382 +804,137 @@
       });
     </script>
 
-    <script>
+    
+        <script>
       var options = {
         chart: {
           type: "line",
-          height: 300,
-          toolbar: { show: false },
+          height: 320,
+          toolbar: { show: true, autoSelected: 'zoom', tools: { download: false } },
+          background: "transparent",
+          dropShadow: { enabled: true, color: '#000', top: 18, left: 7, blur: 10, opacity: 0.2 }
         },
-
+        theme: { mode: 'dark' },
+        dataLabels: { enabled: false },
         series: [
-          {
-            name: "PACKING 1",
-            data: [
-              7, 8, 6.5, 6.5, 6.7, 7, 6.4, 6.4, 6.3, 6.6, 6.4, 7.1, 7.0, 6.6,
-              7.2, 7.4, 6.7, 6.9,
-            ],
-          },
-          {
-            name: "PACKING 2",
-            data: [9, 8.5, 9, 8.2, 8.7, 8.8],
-          },
-          {
-            name: "PACKING 3",
-            data: [
-              9.5, 10.2, 9.7, 10.3, 10.4, 9.8, 10.5, 9.9, 10.2, 10.6, 10.1,
-              10.4, 11,
-            ],
-          },
+          { name: "PACKING 1", data: [7.0, 8.0, 6.5, 6.5, 6.7, 7.0, 6.4, 6.4, 6.3, 6.6, 6.4, 7.1, 7.0, 6.6, 7.2, 7.4, 6.7, 6.9] },
+          { name: "PACKING 2", data: [9.0, 8.5, 9.0, 8.2, 8.7, 8.8] },
+          { name: "PACKING 3", data: [9.5, 10.2, 9.7, 10.3, 10.4, 9.8, 10.5, 9.9, 10.2, 10.6, 10.1, 10.4, 11.0] }
         ],
-
         xaxis: {
-          categories: [
-            "T01",
-            "T02",
-            "T03",
-            "T04",
-            "T05",
-            "T06",
-            "T07",
-            "T08",
-            "T09",
-            "T10",
-            "T11",
-            "T12",
-            "T13",
-            "T14",
-            "T15",
-            "T16",
-            "T17",
-            "T18",
-          ],
+          categories: ["T01","T02","T03","T04","T05","T06","T07","T08","T09","T10","T11","T12","T13","T14","T15","T16","T17","T18"],
+          axisBorder: { show: false }, axisTicks: { show: false }
         },
-
         yaxis: {
-          min: 0,
-          max: 12,
+          min: 0, max: 12,
           labels: {
             formatter: function (val) {
               let h = Math.floor(val);
               let m = Math.round((val - h) * 60);
               return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-            },
-          },
+            }
+          }
         },
-
-        stroke: {
-          width: 3,
-          curve: "smooth",
-        },
-
-        colors: ["#5b9bd5", "#ed7d31", "#a5a5a5"],
-
-        markers: {
-          size: 4,
-        },
-
+        stroke: { width: 3, curve: "smooth" },
+        colors: ["#00C6FF", "#f59e0b", "#a855f7"],
+        markers: { size: 5, strokeWidth: 2, hover: { size: 7 } },
         tooltip: {
+          theme: 'dark',
+          shared: false,
+          intersect: true,
           y: {
             formatter: function (val) {
               let h = Math.floor(val);
               let m = Math.round((val - h) * 60);
               return `${h}h ${m}m`;
-            },
-          },
+            }
+          }
         },
-
-        legend: {
-          position: "bottom",
-        },
-
+        legend: { position: "bottom", fontSize: '13px', fontWeight: 500, markers: { radius: 12 } },
         grid: {
-          borderColor: "rgba(255,255,255,0.08)",
-        },
+          padding: { left: 15, right: 15 },
+          borderColor: "rgba(255,255,255,0.04)", strokeDashArray: 4,
+          xaxis: { lines: { show: true } }, yaxis: { lines: { show: true } }
+        }
       };
-
-      var chart = new ApexCharts(
-        document.querySelector("#chart-enfriamiento"),
-        options,
-      );
+      
+      var container = document.querySelector("#chart-enfriamiento");
+      if (container) {
+          container.innerHTML = ""; // Force clear any duplicate apexcharts created previously
+      }
+      
+      var chart = new ApexCharts(container, options);
       chart.render();
-    </script>
-    <script>
-var optionsBatchTuneles = {
-    chart: {
-        type: 'bar',
-        height: 320,
-        stacked: true,
-        toolbar: { show: false }
-    },
 
+      var optionsBatchTuneles = {
+    chart: { type: 'bar', height: 340, stacked: true, toolbar: { show: false }, background: 'transparent' },
+    theme: { mode: 'dark' },
     series: [
-        {
-            name: 'PACKING 1',
-            data: [2, 3, 3, 2, 2, 2, 3, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 3]
-        },
-        {
-            name: 'PACKING 2',
-            data: [2, 2, 3, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 0]
-        },
-        {
-            name: 'PACKING 3',
-            data: [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0]
-        }
+        { name: 'PACKING 1', data: [2, 3, 3, 2, 2, 2, 3, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 3] },
+        { name: 'PACKING 2', data: [2, 2, 3, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 0] },
+        { name: 'PACKING 3', data: [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0] }
     ],
-
     xaxis: {
-        categories: [
-            'T01','T02','T03','T04','T05','T06','T07','T08','T09',
-            'T10','T11','T12','T13','T14','T15','T16','T17','T18'
-        ],
-        labels: {
-            style: {
-                fontSize: '12px'
-            }
-        }
+        categories: ['T01','T02','T03','T04','T05','T06','T07','T08','T09','T10','T11','T12','T13','T14','T15','T16','T17','T18'],
+        axisBorder: { show: false }, axisTicks: { show: false }
     },
-
-    yaxis: {
-        min: 0,
-        max: 8,
-        tickAmount: 4,
-        labels: {
-            formatter: function (val) {
-                return Math.round(val);
-            }
-        }
+    yaxis: { min: 0, max: 8, tickAmount: 4, labels: { formatter: function(val) { return Math.round(val); } } },
+    plotOptions: { bar: { horizontal: false, columnWidth: '40%', borderRadius: 0, dataLabels: { position: 'center' } } },
+    fill: {
+        type: 'solid',
+        opacity: 1
     },
-
-    plotOptions: {
-        bar: {
-            horizontal: false,
-            columnWidth: '55%',
-            borderRadius: 0,
-            dataLabels: {
-                position: 'center'
-            }
-        }
-    },
-
-    dataLabels: {
-        enabled: true,
-        formatter: function (val) {
-            return val > 0 ? val : '';
-        },
-        style: {
-            colors: ['#ffffff'],
-            fontSize: '12px',
-            fontWeight: 700
-        }
-    },
-
-    colors: [
-        '#52b788', // PACKING 1
-        '#2d6a6f', // PACKING 2
-        '#84a98c'  // PACKING 3
-    ],
-
-    legend: {
-        position: 'bottom'
-    },
-
-    grid: {
-        borderColor: 'rgba(255,255,255,0.08)'
-    },
-
-    tooltip: {
-        shared: true,
-        intersect: false,
-        y: {
-            formatter: function (val) {
-                return val + ' batch';
-            }
-        }
-    }
+    dataLabels: { enabled: true, formatter: function (val) { return val > 0 ? val : ''; }, style: { colors: ['#ffffff'], fontSize: '12px', fontWeight: 700 } },
+    colors: ['#10b981', '#3b82f6', '#8b5cf6'],
+    legend: { position: 'bottom', fontSize: '13px', fontWeight: 500, markers: { radius: 12 } },
+    grid: { borderColor: 'rgba(255,255,255,0.03)', strokeDashArray: 4 },
+    tooltip: { theme: 'dark', shared: true, intersect: false, y: { formatter: function (val) { return val + ' batch'; } } }
 };
-
 var chartBatchTuneles = new ApexCharts(
     document.querySelector("#chart-batch-tuneles"),
     optionsBatchTuneles
 );
 chartBatchTuneles.render();
-</script>
-<div class="col l6 m6 s12">
-  <div class="component">
-    <div class="title">
-      <span>Sensores habilitados por túnel y packing</span>
-    </div>
 
-    <div id="chart-sensores-tuneles"></div>
-  </div>
-</div>
 
-<script>
 var optionsSensoresTuneles = {
-    chart: {
-        type: 'heatmap',
-        height: 320,
-        toolbar: { show: false }
-    },
-
+    chart: { type: 'heatmap', height: 340, toolbar: { show: false }, background: 'transparent' },
+    theme: { mode: 'dark' },
     series: [
-        {
-            name: 'PACKING 1',
-            data: [
-                { x: 'T01', y: 8 },
-                { x: 'T02', y: 7 },
-                { x: 'T03', y: 8 },
-                { x: 'T04', y: 6 },
-                { x: 'T05', y: 5 },
-                { x: 'T06', y: 8 },
-                { x: 'T07', y: 7 },
-                { x: 'T08', y: 8 },
-                { x: 'T09', y: 6 },
-                { x: 'T10', y: 8 },
-                { x: 'T11', y: 7 },
-                { x: 'T12', y: 8 },
-                { x: 'T13', y: 5 },
-                { x: 'T14', y: 6 },
-                { x: 'T15', y: 7 },
-                { x: 'T16', y: 8 },
-                { x: 'T17', y: 6 },
-                { x: 'T18', y: 7 }
-            ]
-        },
-        {
-            name: 'PACKING 2',
-            data: [
-                { x: 'T01', y: 6 },
-                { x: 'T02', y: 8 },
-                { x: 'T03', y: 7 },
-                { x: 'T04', y: 5 },
-                { x: 'T05', y: 6 },
-                { x: 'T06', y: 8 },
-                { x: 'T07', y: 8 },
-                { x: 'T08', y: 7 },
-                { x: 'T09', y: 6 },
-                { x: 'T10', y: 8 },
-                { x: 'T11', y: 8 },
-                { x: 'T12', y: 7 },
-                { x: 'T13', y: 6 },
-                { x: 'T14', y: 5 },
-                { x: 'T15', y: 8 },
-                { x: 'T16', y: 7 },
-                { x: 'T17', y: 6 },
-                { x: 'T18', y: 8 }
-            ]
-        },
-        {
-            name: 'PACKING 3',
-            data: [
-                { x: 'T01', y: 7 },
-                { x: 'T02', y: 6 },
-                { x: 'T03', y: 8 },
-                { x: 'T04', y: 8 },
-                { x: 'T05', y: 7 },
-                { x: 'T06', y: 6 },
-                { x: 'T07', y: 8 },
-                { x: 'T08', y: 7 },
-                { x: 'T09', y: 8 },
-                { x: 'T10', y: 6 },
-                { x: 'T11', y: 7 },
-                { x: 'T12', y: 8 },
-                { x: 'T13', y: 0 },
-                { x: 'T14', y: 0 },
-                { x: 'T15', y: 0 },
-                { x: 'T16', y: 0 },
-                { x: 'T17', y: 0 },
-                { x: 'T18', y: 0 }
-            ]
-        }
+        { name: 'PACKING 1', data: [ { x: 'T01', y: 8 }, { x: 'T02', y: 7 }, { x: 'T03', y: 8 }, { x: 'T04', y: 6 }, { x: 'T05', y: 5 }, { x: 'T06', y: 8 }, { x: 'T07', y: 7 }, { x: 'T08', y: 8 }, { x: 'T09', y: 6 }, { x: 'T10', y: 8 }, { x: 'T11', y: 7 }, { x: 'T12', y: 8 }, { x: 'T13', y: 5 }, { x: 'T14', y: 6 }, { x: 'T15', y: 7 }, { x: 'T16', y: 8 }, { x: 'T17', y: 6 }, { x: 'T18', y: 7 } ] },
+        { name: 'PACKING 2', data: [ { x: 'T01', y: 6 }, { x: 'T02', y: 8 }, { x: 'T03', y: 7 }, { x: 'T04', y: 5 }, { x: 'T05', y: 6 }, { x: 'T06', y: 8 }, { x: 'T07', y: 8 }, { x: 'T08', y: 7 }, { x: 'T09', y: 6 }, { x: 'T10', y: 8 }, { x: 'T11', y: 8 }, { x: 'T12', y: 7 }, { x: 'T13', y: 6 }, { x: 'T14', y: 5 }, { x: 'T15', y: 8 }, { x: 'T16', y: 7 }, { x: 'T17', y: 6 }, { x: 'T18', y: 8 } ] },
+        { name: 'PACKING 3', data: [ { x: 'T01', y: 7 }, { x: 'T02', y: 6 }, { x: 'T03', y: 8 }, { x: 'T04', y: 8 }, { x: 'T05', y: 7 }, { x: 'T06', y: 6 }, { x: 'T07', y: 8 }, { x: 'T08', y: 7 }, { x: 'T09', y: 8 }, { x: 'T10', y: 6 }, { x: 'T11', y: 7 }, { x: 'T12', y: 8 }, { x: 'T13', y: 0 }, { x: 'T14', y: 0 }, { x: 'T15', y: 0 }, { x: 'T16', y: 0 }, { x: 'T17', y: 0 }, { x: 'T18', y: 0 } ] }
     ],
-
-    dataLabels: {
-        enabled: true,
-        style: {
-            colors: ['#ffffff'],
-            fontSize: '12px',
-            fontWeight: 700
-        }
-    },
-
+    dataLabels: { enabled: true, style: { colors: ['#ffffff'], fontSize: '13px', fontWeight: 600 } },
     plotOptions: {
         heatmap: {
-            shadeIntensity: 0.6,
-            radius: 4,
+            shadeIntensity: 0.5,
+            radius: 0,
             useFillColorAsStroke: false,
             colorScale: {
                 ranges: [
-                    {
-                        from: 0,
-                        to: 0,
-                        name: 'Sin sensores',
-                        color: '#2c2c2c'
-                    },
-                    {
-                        from: 1,
-                        to: 3,
-                        name: 'Bajo',
-                        color: '#d9534f'
-                    },
-                    {
-                        from: 4,
-                        to: 6,
-                        name: 'Medio',
-                        color: '#f0ad4e'
-                    },
-                    {
-                        from: 7,
-                        to: 8,
-                        name: 'Óptimo',
-                        color: '#52b788'
-                    }
+                    { from: 0, to: 0, name: 'Sin sensores', color: '#1e293b' },
+                    { from: 1, to: 3, name: 'Bajo', color: '#ef4444' },
+                    { from: 4, to: 6, name: 'Medio', color: '#f59e0b' },
+                    { from: 7, to: 8, name: 'Óptimo', color: '#10b981' }
                 ]
             }
         }
     },
-
-    stroke: {
-        width: 1,
-        colors: ['rgba(255,255,255,0.08)']
-    },
-
-    xaxis: {
-        type: 'category',
-        categories: [
-            'T01','T02','T03','T04','T05','T06','T07','T08','T09',
-            'T10','T11','T12','T13','T14','T15','T16','T17','T18'
-        ],
-        labels: {
-            style: {
-                fontSize: '12px'
-            }
-        }
-    },
-
-    legend: {
-        position: 'bottom'
-    },
-
-    grid: {
-        borderColor: 'rgba(255,255,255,0.08)'
-    },
-
-    tooltip: {
-        y: {
-            formatter: function (val) {
-                return val + ' sensores habilitados';
-            }
-        }
-    }
+    stroke: { width: 3, colors: ['transparent'] },
+    xaxis: { type: 'category', axisBorder: { show: false }, axisTicks: { show: false } },
+    legend: { position: 'bottom', fontSize: '13px', fontWeight: 500, markers: { radius: 12 } },
+    grid: { padding: { right: 0 }, borderColor: 'rgba(255,255,255,0)' },
+    tooltip: { theme: 'dark', y: { formatter: function(val) { return val + ' sensores habilitados'; } } }
 };
-
 var chartSensoresTuneles = new ApexCharts(
     document.querySelector("#chart-sensores-tuneles"),
     optionsSensoresTuneles
 );
 chartSensoresTuneles.render();
 </script>
+
+
+
   </body>
 </html>
