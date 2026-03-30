@@ -145,16 +145,16 @@
 
       .kpi-box {
         background: rgba(255,255,255,0.03);
-        padding: 10px 16px;
+        padding: 8px 12px;
         border-radius: 12px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        gap: 16px;
+        gap: 8px;
         border: none;
       }
       .kpi-box .subtext {
-        font-size: 12px;
+        font-size: 11px;
         color: #94a3b8;
         text-transform: uppercase;
         font-weight: 600;
@@ -165,11 +165,12 @@
         margin-top: 0;
         display: flex;
         align-items: center;
-        justify-content: center;
-        gap: 10px;
-        font-size: 18px;
+        justify-content: flex-end;
+        gap: 8px;
+        font-size: 15px;
         font-weight: 700;
         color: #f8fafc;
+        white-space: nowrap;
       }
 
       .circle { width: 12px; height: 12px; border-radius: 50%; box-shadow: 0 0 12px currentColor; }
@@ -234,6 +235,144 @@
       }
       .card-full {
         flex: 1 1 100%;
+      }
+
+      /* ===== CROSS-FILTERING: Active/Dimmed States ===== */
+      .data-process .kpi-row {
+        cursor: pointer;
+        transition: background 0.3s ease, opacity 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+        position: relative;
+        overflow: hidden;
+      }
+      .data-process .kpi-row::before {
+        content: '';
+        position: absolute;
+        left: 0; top: 0; bottom: 0;
+        width: 3px;
+        background: transparent;
+        border-radius: 3px;
+        transition: background 0.3s ease;
+      }
+      .data-process .kpi-row.active {
+        background: rgba(0, 198, 255, 0.12) !important;
+        box-shadow: 0 0 20px rgba(0, 198, 255, 0.08);
+        transform: scale(1.02);
+      }
+      .data-process .kpi-row.active::before {
+        background: #00C6FF;
+      }
+      .data-process .kpi-row.dimmed {
+        opacity: 0.3;
+        filter: saturate(0.2);
+      }
+
+      .kpi-box.dimmed, .kpi-row.filter-dimmed {
+        opacity: 0.3;
+        filter: saturate(0.2);
+        transition: opacity 0.3s ease, filter 0.3s ease;
+      }
+      .kpi-box.active-highlight {
+        background: rgba(0, 198, 255, 0.08) !important;
+        transition: background 0.3s ease;
+      }
+
+      .kpi-value {
+        transition: opacity 0.3s ease;
+      }
+
+      /* ===== CARD 2 REDESIGN: Min/Max/Avg Badges ===== */
+      .card-kpi {
+        max-height: none !important;
+      }
+      .kpi-box .stat-badges {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .stat-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        font-size: 10px;
+        font-weight: 600;
+        padding: 2px 6px;
+        border-radius: 6px;
+        line-height: 1;
+        letter-spacing: 0.2px;
+      }
+      .stat-badge.badge-min {
+        background: rgba(59, 130, 246, 0.15);
+        color: #60a5fa;
+      }
+      .stat-badge.badge-max {
+        background: rgba(239, 68, 68, 0.15);
+        color: #f87171;
+      }
+      .stat-badge .arrow {
+        font-size: 11px;
+        line-height: 1;
+      }
+
+      .kpi-main-enhanced {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        gap: 8px;
+      }
+      .kpi-main-enhanced .kpi-value {
+        font-size: 38px;
+      }
+      .kpi-minmax-row {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+      .kpi-minmax-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .kpi-minmax-item.min-val {
+        color: #60a5fa;
+      }
+      .kpi-minmax-item.max-val {
+        color: #f87171;
+      }
+      .kpi-minmax-item .arrow {
+        font-size: 15px;
+      }
+      .kpi-minmax-divider {
+        width: 1px;
+        height: 14px;
+        background: rgba(255,255,255,0.15);
+      }
+
+      /* Filter active indicator pill on Card 1 */
+      .filter-indicator {
+        display: none;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        color: #00C6FF;
+        font-weight: 600;
+        padding: 4px 10px;
+        background: rgba(0, 198, 255, 0.1);
+        border-radius: 20px;
+        margin-left: auto;
+        cursor: pointer;
+        transition: background 0.2s;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .filter-indicator:hover {
+        background: rgba(0, 198, 255, 0.2);
+      }
+      .filter-indicator.visible {
+        display: inline-flex;
       }
     </style>
   </head>
@@ -397,23 +536,24 @@
           <!-- UNIFIED MASTER GRID -->
           <div class="custom-dashboard-grid">
             <!-- CARD 1 -->
-            <div class="component data-process card-kpi card-third">
-                <div class="title">
+            <div class="component data-process card-kpi card-third" id="card-batch">
+                <div class="title" style="display:flex;align-items:center;gap:8px;">
                   <span>Batch realizados</span>
+                  <span class="filter-indicator" id="filter-indicator" title="Limpiar filtro">✕ Limpiar</span>
                 </div>
 
                 <div class="kpi-content-wrapper">
                   <div class="content">
                     <div class="kpi-list">
-                      <div class="kpi-row">
+                      <div class="kpi-row" data-pk="PK01" id="pk-row-PK01">
                         <span class="kpi-label">PK01</span>
                         <span class="kpi-detail">52 &middot; 41.6%</span>
                       </div>
-                      <div class="kpi-row">
+                      <div class="kpi-row" data-pk="PK02" id="pk-row-PK02">
                         <span class="kpi-label">PK02</span>
                         <span class="kpi-detail">38 &middot; 30.4%</span>
                       </div>
-                      <div class="kpi-row">
+                      <div class="kpi-row" data-pk="PK03" id="pk-row-PK03">
                         <span class="kpi-label">PK03</span>
                         <span class="kpi-detail">35 &middot; 28.0%</span>
                       </div>
@@ -421,13 +561,13 @@
                   </div>
 
                   <div class="kpi-main">
-                    <div class="kpi-value">125 <span style="font-size: 20px; font-weight: 600; opacity: 0.8; margin-left: 4px;">batches</span></div>
+                    <div class="kpi-value" id="batch-total-value">125 <span style="font-size: 20px; font-weight: 600; opacity: 0.8; margin-left: 4px;">batches</span></div>
                   </div>
                 </div>
               </div>
 
             <!-- CARD 2 -->
-            <div class="component card-kpi card-third">
+            <div class="component card-kpi card-third" id="card-cooling">
                 <div class="title">
                   <span>Tiempo de enfriamiento promedio</span>
                 </div>
@@ -435,37 +575,54 @@
                 <div class="kpi-content-wrapper">
                   <div class="content">
                     <div class="kpi-split">
-                      <div class="kpi-box">
+                      <div class="kpi-box" data-pk="PK01" id="cool-box-PK01">
                         <div class="subtext">PK01</div>
                         <div class="indicator">
-                          <span>15.2 h</span>
+                          <span>6.8 h</span>
+                          <div class="stat-badges">
+                            <span class="stat-badge badge-min"><span class="arrow">↓</span> 6.3</span>
+                            <span class="stat-badge badge-max"><span class="arrow">↑</span> 8.0</span>
+                          </div>
                         </div>
                       </div>
 
-                      <div class="kpi-box">
+                      <div class="kpi-box" data-pk="PK02" id="cool-box-PK02">
                         <div class="subtext">PK02</div>
                         <div class="indicator">
-                          <span>21.7 h</span>
+                          <span>8.7 h</span>
+                          <div class="stat-badges">
+                            <span class="stat-badge badge-min"><span class="arrow">↓</span> 8.2</span>
+                            <span class="stat-badge badge-max"><span class="arrow">↑</span> 9.0</span>
+                          </div>
                         </div>
                       </div>
 
-                      <div class="kpi-box">
+                      <div class="kpi-box" data-pk="PK03" id="cool-box-PK03">
                         <div class="subtext">PK03</div>
                         <div class="indicator">
-                          <span>18.3 h</span>
+                          <span>10.2 h</span>
+                          <div class="stat-badges">
+                            <span class="stat-badge badge-min"><span class="arrow">↓</span> 9.5</span>
+                            <span class="stat-badge badge-max"><span class="arrow">↑</span> 11.0</span>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div class="kpi-main">
-                    <div class="kpi-value">18.4 h</div>
+                  <div class="kpi-main-enhanced">
+                    <div class="kpi-value" id="cooling-total-value">8.3 h</div>
+                    <div class="kpi-minmax-row">
+                      <span class="kpi-minmax-item min-val"><span class="arrow">↓</span> 6.3 h</span>
+                      <span class="kpi-minmax-divider"></span>
+                      <span class="kpi-minmax-item max-val"><span class="arrow">↑</span> 11.0 h</span>
+                    </div>
                   </div>
                 </div>
               </div>
 
             <!-- CARD 3 -->
-            <div class="component data-connectivity card-kpi card-third">
+            <div class="component data-connectivity card-kpi card-third" id="card-sensors">
                 <div class="title">
                   <span>Estado de sensores</span>
                 </div>
@@ -473,34 +630,34 @@
                 <div class="kpi-content-wrapper">
                   <div class="content">
                     <div class="kpi-list">
-                      <div class="kpi-row">
+                      <div class="kpi-row" id="sensor-row-op">
                         <div class="indicator">
                           <div class="circle green"></div>
                           <span>Operativos</span>
                         </div>
-                        <span class="kpi-detail">80%</span>
+                        <span class="kpi-detail" id="sensor-val-op">80%</span>
                       </div>
 
-                      <div class="kpi-row">
+                      <div class="kpi-row" id="sensor-row-out">
                         <div class="indicator">
                           <div class="circle yellow"></div>
                           <span>Fuera de rango</span>
                         </div>
-                        <span class="kpi-detail">4%</span>
+                        <span class="kpi-detail" id="sensor-val-out">4%</span>
                       </div>
 
-                      <div class="kpi-row">
+                      <div class="kpi-row" id="sensor-row-inop">
                         <div class="indicator">
                           <div class="circle red"></div>
                           <span>Inoperativos</span>
                         </div>
-                        <span class="kpi-detail">16%</span>
+                        <span class="kpi-detail" id="sensor-val-inop">16%</span>
                       </div>
                     </div>
                   </div>
 
                   <div class="kpi-main">
-                    <div class="kpi-value">84%</div>
+                    <div class="kpi-value" id="sensor-total-value">84%</div>
                   </div>
                 </div>
               </div>
@@ -951,6 +1108,185 @@ var chartSensoresTuneles = new ApexCharts(
     optionsSensoresTuneles
 );
 chartSensoresTuneles.render();
+</script>
+
+<script>
+/* ===== CROSS-FILTERING ENGINE ===== */
+(function() {
+  // --- State ---
+  var selectedPacking = null;
+
+  // --- Data maps ---
+  var batchData = { PK01: { value: 52, pct: 41.6 }, PK02: { value: 38, pct: 30.4 }, PK03: { value: 35, pct: 28.0 } };
+  var coolingData = {
+    PK01: { avg: 6.8, min: 6.3, max: 8.0 },
+    PK02: { avg: 8.7, min: 8.2, max: 9.0 },
+    PK03: { avg: 10.2, min: 9.5, max: 11.0 }
+  };
+  var sensorData = {
+    PK01: { op: 85, out: 5, inop: 10, main: 85 },
+    PK02: { op: 75, out: 5, inop: 20, main: 75 },
+    PK03: { op: 90, out: 2, inop: 8, main: 90 }
+  };
+
+  // Chart original colors
+  var lineColors   = ["#00C6FF", "#f59e0b", "#a855f7"];
+  var barColors    = ["#10b981", "#3b82f6", "#8b5cf6"];
+  var dimColor     = "#333333";
+  var pkMap        = { PK01: 0, PK02: 1, PK03: 2 };
+
+  // --- Click handlers on Card 1 rows ---
+  var pkRows = document.querySelectorAll('.data-process .kpi-row[data-pk]');
+  var filterIndicator = document.getElementById('filter-indicator');
+
+  pkRows.forEach(function(row) {
+    row.addEventListener('click', function() {
+      var pk = this.getAttribute('data-pk');
+      if (selectedPacking === pk) {
+        selectedPacking = null;
+      } else {
+        selectedPacking = pk;
+      }
+      applyFilter();
+    });
+  });
+
+  // Clear filter button
+  if (filterIndicator) {
+    filterIndicator.addEventListener('click', function(e) {
+      e.stopPropagation();
+      selectedPacking = null;
+      applyFilter();
+    });
+  }
+
+  function applyFilter() {
+    updateCard1();
+    updateCard2();
+    updateCard3();
+    updateCharts();
+    updateFilterIndicator();
+  }
+
+  function updateFilterIndicator() {
+    if (filterIndicator) {
+      if (selectedPacking) {
+        filterIndicator.classList.add('visible');
+        filterIndicator.innerHTML = '✕ ' + selectedPacking;
+      } else {
+        filterIndicator.classList.remove('visible');
+      }
+    }
+  }
+
+  // --- Card 1: Highlight/Dim rows, update total ---
+  function updateCard1() {
+    pkRows.forEach(function(row) {
+      var pk = row.getAttribute('data-pk');
+      row.classList.remove('active', 'dimmed');
+      if (selectedPacking) {
+        if (pk === selectedPacking) {
+          row.classList.add('active');
+        } else {
+          row.classList.add('dimmed');
+        }
+      }
+    });
+    var totalEl = document.getElementById('batch-total-value');
+    if (totalEl) {
+      if (selectedPacking && batchData[selectedPacking]) {
+        var d = batchData[selectedPacking];
+        totalEl.innerHTML = d.value + ' <span style="font-size:20px;font-weight:600;opacity:0.8;margin-left:4px;">batches</span>';
+      } else {
+        totalEl.innerHTML = '125 <span style="font-size:20px;font-weight:600;opacity:0.8;margin-left:4px;">batches</span>';
+      }
+    }
+  }
+
+  // --- Card 2: Highlight/Dim boxes, update total ---
+  function updateCard2() {
+    var boxes = document.querySelectorAll('#card-cooling .kpi-box[data-pk]');
+    boxes.forEach(function(box) {
+      var pk = box.getAttribute('data-pk');
+      box.classList.remove('dimmed', 'active-highlight');
+      if (selectedPacking) {
+        if (pk === selectedPacking) {
+          box.classList.add('active-highlight');
+        } else {
+          box.classList.add('dimmed');
+        }
+      }
+    });
+    var totalEl = document.getElementById('cooling-total-value');
+    var minmaxRow = document.querySelector('.kpi-minmax-row');
+    if (selectedPacking && coolingData[selectedPacking]) {
+      var d = coolingData[selectedPacking];
+      if (totalEl) totalEl.textContent = d.avg + ' h';
+      if (minmaxRow) {
+        minmaxRow.innerHTML = '<span class="kpi-minmax-item min-val"><span class="arrow">↓</span> ' + d.min + ' h</span>' +
+          '<span class="kpi-minmax-divider"></span>' +
+          '<span class="kpi-minmax-item max-val"><span class="arrow">↑</span> ' + d.max + ' h</span>';
+      }
+    } else {
+      if (totalEl) totalEl.textContent = '8.3 h';
+      if (minmaxRow) {
+        minmaxRow.innerHTML = '<span class="kpi-minmax-item min-val"><span class="arrow">↓</span> 6.3 h</span>' +
+          '<span class="kpi-minmax-divider"></span>' +
+          '<span class="kpi-minmax-item max-val"><span class="arrow">↑</span> 11.0 h</span>';
+      }
+    }
+  }
+
+  // --- Card 3: Dim sensor rows (no PK data, just visual dim) ---
+  function updateCard3() {
+    var valOp = document.getElementById('sensor-val-op');
+    var valOut = document.getElementById('sensor-val-out');
+    var valInop = document.getElementById('sensor-val-inop');
+    var totalEl = document.getElementById('sensor-total-value');
+    
+    if (selectedPacking && sensorData[selectedPacking]) {
+      var d = sensorData[selectedPacking];
+      if (valOp) valOp.textContent = d.op + '%';
+      if (valOut) valOut.textContent = d.out + '%';
+      if (valInop) valInop.textContent = d.inop + '%';
+      if (totalEl) totalEl.textContent = d.main + '%';
+    } else {
+      if (valOp) valOp.textContent = '80%';
+      if (valOut) valOut.textContent = '4%';
+      if (valInop) valInop.textContent = '16%';
+      if (totalEl) totalEl.textContent = '84%';
+    }
+  }
+
+  // --- Charts: Update ApexCharts series colors ---
+  function updateCharts() {
+    var allSeries = ["PACKING 1", "PACKING 2", "PACKING 3"];
+    
+    if (selectedPacking) {
+      var idx = pkMap[selectedPacking];
+      
+      allSeries.forEach(function(s, i) {
+        if (i === idx) {
+          chart.showSeries(s);
+          chartBatchTuneles.showSeries(s);
+          chartSensoresTuneles.showSeries(s);
+        } else {
+          chart.hideSeries(s);
+          chartBatchTuneles.hideSeries(s);
+          chartSensoresTuneles.hideSeries(s);
+        }
+      });
+
+    } else {
+      // Show all series
+      allSeries.forEach(function(s) {
+        chart.showSeries(s);
+        chartBatchTuneles.showSeries(s);
+        chartSensoresTuneles.showSeries(s);
+      });
+    }
+  }
+})();
 </script>
 
 
